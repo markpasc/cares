@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+	<meta charset="utf-8">
+	<title>markroblog</title>
+
+    <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/hi.css" rel="stylesheet">
+</head><body>
+
+    <div class="row-fluid">
+        <h1 class="span10 offset1">silene exile</h1>
+    </div>
+
+    {{#posts}}
+        <div class="post row-fluid">
+            <div class="span8 offset1">
+                <p>
+                    <span class="body">
+                        {{{Html}}}
+                    </span>
+                    <span class="time">
+                        <a href="/post/{{Id}}">{{PostedTime}} <small>{{PostedAM}}</small> {{PostedDate}}</a>
+                    </span>
+                </p>
+            </div>
+        </div>
+    {{/posts}}
+
+    <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+</body></html>
