@@ -28,6 +28,10 @@ p {
     line-height: 1em;
 }
 
+.post {
+    margin-bottom: 2ex;
+}
+
 .post .body {
     font-size: 1.5em;
     line-height: 1em;
