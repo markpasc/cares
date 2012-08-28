@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"encoding/base64"
+	"encoding/json"
 	"time"
 	"database/sql"
 	"strconv"
@@ -130,7 +131,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string] interface{})
 	data["posts"] = posts
 	data["title"] = "markroblog"
-	fmt.Fprintf(w, mustache.RenderFileInLayout("html/index.html", "html/base.html", data))
+	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
+	w.Write([]byte(html))
 }
 
 func permalink(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +154,8 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string] interface{})
 	data["post"] = post
 	data["title"] = "markroblog • a post"
-	fmt.Fprintf(w, mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data))
+	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
+	w.Write([]byte(html))
 }
 
 func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
@@ -183,32 +186,36 @@ func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
 }
 
 func makepost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "POST is required", http.StatusMethodNotAllowed)
+		return
+	}
 	if !isAuthed(w, r) {
 		return
 	}
 
-	// Is this a POST? Make a new post then!
-	if r.Method == "POST" {
-		post := NewPost()
-		html := r.FormValue("html")
-		if html == "" {
-			http.Error(w, "html value is required", http.StatusBadRequest)
-		}
+	post := NewPost()
+	html := r.FormValue("html")
+	if html == "" {
+		http.Error(w, "html value is required", http.StatusBadRequest)
+	}
 
-		post.Html = html
-		err := post.Save()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Redirect(w, r, post.Permalink(), http.StatusTemporaryRedirect)
+	post.Html = html
+	err := post.Save()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data := make(map[string] interface{})
-	data["title"] = "markroblog • new post"
-	fmt.Fprintf(w, mustache.RenderFileInLayout("html/makepost.html", "html/base.html", data))
+	ret, err := json.Marshal(post)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ret)
 }
 
 func static(w http.ResponseWriter, r *http.Request) {
