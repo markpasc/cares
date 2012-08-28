@@ -129,7 +129,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string] interface{})
 	data["posts"] = posts
-	fmt.Fprintf(w, mustache.RenderFile("index.html", data))
+	data["title"] = "markroblog"
+	fmt.Fprintf(w, mustache.RenderFileInLayout("html/index.html", "html/base.html", data))
 }
 
 func permalink(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +151,8 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string] interface{})
 	data["post"] = post
-	fmt.Fprintf(w, mustache.RenderFile("permalink.html", data))
+	data["title"] = "markroblog • a post"
+	fmt.Fprintf(w, mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data))
 }
 
 func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
@@ -205,7 +207,8 @@ func makepost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := make(map[string] interface{})
-	fmt.Fprintf(w, mustache.RenderFile("makepost.html", data))
+	data["title"] = "markroblog • new post"
+	fmt.Fprintf(w, mustache.RenderFileInLayout("html/makepost.html", "html/base.html", data))
 }
 
 func static(w http.ResponseWriter, r *http.Request) {

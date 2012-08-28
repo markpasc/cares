@@ -18,8 +18,18 @@
 h1 {
     font-family: 'Blackout Sunrise', sans-serif;
     font-weight: normal;
-    font-size: 6em;
+    font-size: 4em;
     line-height: 1.5em;
+}
+
+h1 a:link, h1 a:visited, h1 a:active {
+    color: inherit;
+    border-bottom: 2px solid transparent;
+}
+
+h1 a:hover {
+    text-decoration: none;
+    border-bottom: 2px solid black;
 }
 
 p {
@@ -35,6 +45,10 @@ p {
 .post .body {
     font-size: 1.5em;
     line-height: 1em;
+}
+
+.post .body:focus {
+    outline: none;
 }
 
 .post .body input {

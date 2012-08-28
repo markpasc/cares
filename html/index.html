@@ -1,0 +1,56 @@
+<div class="row-fluid">
+    <h1 class="span10 offset1"><a href="/">silene exile</a></h1>
+</div>
+
+<div id="newpost" class="post row-fluid hide">
+    <div class="span8 offset1">
+        <p>
+            <span class="body" contenteditable="true">new post</span>
+            <span class="time">
+                <a href="/">now</a>
+            </span>
+        </p>
+    </div>
+</div>
+
+{{#posts}}
+    <div class="post row-fluid">
+        <div class="span8 offset1">
+            <p>
+                <span class="body">
+                    {{{Html}}}
+                </span>
+                <span class="time">
+                    <a href="{{Permalink}}">{{PostedTime}} <small>{{PostedAM}}</small> {{PostedDate}}</a>
+                </span>
+            </p>
+        </div>
+    </div>
+{{/posts}}
+
+<script>
+    $(function () {
+        function resetPost() {
+            $(this).blur();
+            $(this).text('new post');
+            $('#newpost').hide();
+            return false;
+        }
+        function startPost() {
+            $('#newpost').show();
+            var $body = $('#newpost .body');
+            $body.focus();
+            window.getSelection().selectAllChildren($body.get(0));
+
+            $body.bind('keydown.return', function () {
+                alert('Here is where we would post!');
+                return resetPost();
+            });
+            $body.bind('keypress.esc', resetPost);
+
+            $(document).unbind('keypress.p');
+            return false;
+        }
+        $(document).bind('keypress.p', startPost);
+    });
+</script>
