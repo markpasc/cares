@@ -7,12 +7,13 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"encoding/base32"
+	"encoding/binary"
 	"encoding/base64"
 	"encoding/json"
 	"net/url"
 	"time"
 	"database/sql"
-	"strconv"
 	_ "github.com/jbarham/gopgsqldriver"
 	"github.com/hoisie/mustache"
 )
@@ -20,7 +21,7 @@ import (
 var db *sql.DB
 
 type Post struct {
-	Id int
+	Id uint64
 	Html string
 	Posted time.Time
 }
@@ -31,7 +32,7 @@ func NewPost() (p *Post) {
 }
 
 func (p *Post) Permalink() string {
-	return fmt.Sprintf("/%d/%d", p.Posted.Year(), p.Id)
+	return fmt.Sprintf("/post/%s", p.Slug())
 }
 
 func (p *Post) PostedTime() string {
@@ -56,13 +57,20 @@ func (p *Post) HtmlXML() string {
 	return buf.String()
 }
 
+func (p *Post) Slug() string {
+	var binSlug [binary.MaxVarintLen64]byte
+	n := binary.PutUvarint(binSlug[0:binary.MaxVarintLen64], uint64(p.Id))
+	slug := base32.StdEncoding.EncodeToString(binSlug[:n])
+	return strings.TrimRight(slug, "=")
+}
+
 func (p *Post) Save() (err error) {
 	if p.Id == 0 {
 		//var result sql.Result
 		//result, err = db.Exec("INSERT INTO post (html, posted) VALUES ($1, $2) RETURNING id",
 		row := db.QueryRow("INSERT INTO post (html, posted) VALUES ($1, $2) RETURNING id",
 			p.Html, p.Posted)
-		var id int
+		var id uint64
 		err = row.Scan(&id)
 		if (err != nil) {
 			return err
@@ -75,7 +83,7 @@ func (p *Post) Save() (err error) {
 	return nil
 }
 
-func PostById(id int) (*Post, error) {
+func PostById(id uint64) (*Post, error) {
 	row := db.QueryRow("SELECT html, posted FROM post WHERE id = $1", id)
 
 	var html string
@@ -96,6 +104,27 @@ func PostById(id int) (*Post, error) {
 	return post, nil
 }
 
+func PostBySlug(slug string) (*Post, error) {
+	log.Println("Finding post id from slug", slug)
+
+	// The decoder will want an even multiple of 8 bytes.
+	padLen := 8 - (len(slug) % 8)
+	slug += strings.Repeat("=", padLen)
+
+	binSlug, err := base32.StdEncoding.DecodeString(slug)
+	if err != nil {
+		return nil, err
+	}
+
+	id, n := binary.Uvarint(binSlug)
+	if n <= 0 {
+		return nil, fmt.Errorf("Read %d bytes decoding slug code %s", n, slug)
+	}
+	log.Println("Yay, reckoned slug", slug, "is id", id, ", looking up")
+
+	return PostById(id)
+}
+
 func RecentPosts(count int) ([]*Post, error) {
 	rows, err := db.Query("SELECT * FROM post ORDER BY posted DESC LIMIT 10")
 	if (err != nil) {
@@ -105,7 +134,7 @@ func RecentPosts(count int) ([]*Post, error) {
 
 	log.Println("Deserializing all the returned posts")
 	posts := make([]*Post, 0, count)
-	var id int
+	var id uint64
 	var html string
 	var posted string
 	var postedTime time.Time
@@ -181,17 +210,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func permalink(w http.ResponseWriter, r *http.Request) {
 	idstr := r.URL.Path[len("/post/"):]
-	log.Println("Finding id from path component", idstr)
-	id, err := strconv.ParseInt(idstr, 10, 32)
+	post, err := PostBySlug(idstr)
 	if (err != nil) {
-		http.Error(w, "invalid post id: " + err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	var post *Post
-	post, err = PostById(int(id))
-	if (err != nil) {
-		http.Error(w, fmt.Sprintf("invalid post #%d: %s", id, err.Error()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("invalid post %s: %s", idstr, err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -281,9 +302,10 @@ func main() {
 	}
 
 	http.HandleFunc("/static/", static)
-	http.HandleFunc("/2012/", permalink)
 	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/post", post)
+	//http.HandleFunc("/archive/", archive)
+	http.HandleFunc("/post/", permalink)
 	http.HandleFunc("/", index)
 
 	log.Println("Ohai web servin'")
