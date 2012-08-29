@@ -159,6 +159,12 @@ func rss(w http.ResponseWriter, r *http.Request) {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
+	if len(r.URL.Path) > 1 {
+		// Actually some other unhandled URL, so 404.
+		http.NotFound(w, r)
+		return
+	}
+
 	posts, err := RecentPosts(10)
 	if (err != nil) {
 		log.Println("OOPS ERROR", err.Error())
