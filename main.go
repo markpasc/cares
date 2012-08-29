@@ -2,27 +2,27 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
+	"encoding/base32"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/hoisie/mustache"
+	_ "github.com/jbarham/gopgsqldriver"
 	"log"
 	"net/http"
-	"strings"
-	"encoding/base32"
-	"encoding/binary"
-	"encoding/base64"
-	"encoding/json"
 	"net/url"
+	"strings"
 	"time"
-	"database/sql"
-	_ "github.com/jbarham/gopgsqldriver"
-	"github.com/hoisie/mustache"
 )
 
 var db *sql.DB
 
 type Post struct {
-	Id uint64
-	Html string
+	Id     uint64
+	Html   string
 	Posted time.Time
 }
 
@@ -72,7 +72,7 @@ func (p *Post) Save() (err error) {
 			p.Html, p.Posted)
 		var id uint64
 		err = row.Scan(&id)
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 		p.Id = id
@@ -89,13 +89,13 @@ func PostById(id uint64) (*Post, error) {
 	var html string
 	var posted string
 	err := row.Scan(&html, &posted)
-	if (err != nil) {
+	if err != nil {
 		log.Println("Error querying database for post #", id, ":", err.Error())
 		return nil, err
 	}
 	log.Println("Got time string:", posted)
 	postedTime, err := time.Parse("2006-01-02 15:04:05.000000", posted)
-	if (err != nil) {
+	if err != nil {
 		log.Println("Error converting database date", posted, "to a time:", err.Error())
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func PostBySlug(slug string) (*Post, error) {
 
 func RecentPosts(count int) ([]*Post, error) {
 	rows, err := db.Query("SELECT * FROM post ORDER BY posted DESC LIMIT 10")
-	if (err != nil) {
+	if err != nil {
 		log.Println("Error querying database for", count, "posts:", err.Error())
 		return nil, err
 	}
@@ -141,20 +141,20 @@ func RecentPosts(count int) ([]*Post, error) {
 	i := 0
 	for rows.Next() {
 		err = rows.Scan(&id, &html, &posted)
-		if (err != nil) {
+		if err != nil {
 			log.Println("Error scanning row", i, ":", err.Error())
 			return nil, err
 		}
 
 		log.Println("Got time string", posted)
 		postedTime, err = time.Parse("2006-01-02 15:04:05.000000", posted)
-		posts = posts[0:i+1]
+		posts = posts[0 : i+1]
 		posts[i] = &Post{id, html, postedTime}
 		i++
 	}
 
 	err = rows.Err()
-	if (err != nil) {
+	if err != nil {
 		log.Println("Error lookin' at rows:", err.Error())
 		return nil, err
 	}
@@ -164,13 +164,13 @@ func RecentPosts(count int) ([]*Post, error) {
 
 func rss(w http.ResponseWriter, r *http.Request) {
 	posts, err := RecentPosts(10)
-	if (err != nil) {
+	if err != nil {
 		log.Println("OOPS ERROR", err.Error())
 	} else {
 		log.Println("OHAI", len(posts), "posts")
 	}
 
-	data := make(map[string] interface{})
+	data := make(map[string]interface{})
 	data["posts"] = posts
 	data["title"] = "markpasc"
 
@@ -195,13 +195,13 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, err := RecentPosts(10)
-	if (err != nil) {
+	if err != nil {
 		log.Println("OOPS ERROR", err.Error())
 	} else {
 		log.Println("OHAI", len(posts), "posts")
 	}
 
-	data := make(map[string] interface{})
+	data := make(map[string]interface{})
 	data["posts"] = posts
 	data["title"] = "markpasc"
 	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
@@ -211,12 +211,12 @@ func index(w http.ResponseWriter, r *http.Request) {
 func permalink(w http.ResponseWriter, r *http.Request) {
 	idstr := r.URL.Path[len("/post/"):]
 	post, err := PostBySlug(idstr)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, fmt.Sprintf("invalid post %s: %s", idstr, err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	data := make(map[string] interface{})
+	data := make(map[string]interface{})
 	data["post"] = post
 	data["title"] = "markpasc • a post"
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
