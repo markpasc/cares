@@ -229,7 +229,7 @@ func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
 	return
 }
 
-func makepost(w http.ResponseWriter, r *http.Request) {
+func post(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "POST is required", http.StatusMethodNotAllowed)
@@ -282,8 +282,8 @@ func main() {
 
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/2012/", permalink)
-	http.HandleFunc("/post", makepost)
 	http.HandleFunc("/rss", rss)
+	http.HandleFunc("/post", post)
 	http.HandleFunc("/", index)
 
 	log.Println("Ohai web servin'")
