@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:microblog="http://microblog.reallysimple.org/">
+	<channel>
+		<title>{{title}}</title>
+		<link>{{baseurl}}/</link>
+		<description>a microblog</description>
+		<docs>http://www.rssboard.org/rss-specification</docs>
+		<generator>cares 1.0</generator>
+		<language>en-us</language>
+
+		<image>
+			<link>{{baseurl}}/</link>
+			<title>{{title}}</title>
+			<url>{{baseurl}}/static/catface.jpg</url>
+			<height>241</height>
+			<width>241</width>
+		</image>
+		<microblog:avatar>{{baseurl}}/static/catface.jpg</microblog:avatar>
+
+		{{#posts}}
+			<item>
+				<guid>{{baseurl}}{{Permalink}}</guid>
+				<description>{{{HtmlXML}}}</description>
+				<pubDate>{{PostedRSS}}</pubDate>
+			</item>
+		{{/posts}}
+
+	</channel>
+</rss>

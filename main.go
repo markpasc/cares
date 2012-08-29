@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"time"
 	"database/sql"
 	"strconv"
@@ -41,6 +44,16 @@ func (p *Post) PostedAM() string {
 
 func (p *Post) PostedDate() string {
 	return p.Posted.Format("_2 Jan 2006")
+}
+
+func (p *Post) PostedRSS() string {
+	return p.Posted.UTC().Format(time.RFC1123)
+}
+
+func (p *Post) HtmlXML() string {
+	var buf bytes.Buffer
+	xml.Escape(&buf, []byte(p.Html))
+	return buf.String()
 }
 
 func (p *Post) Save() (err error) {
@@ -118,6 +131,31 @@ func RecentPosts(count int) ([]*Post, error) {
 	}
 
 	return posts, nil
+}
+
+func rss(w http.ResponseWriter, r *http.Request) {
+	posts, err := RecentPosts(10)
+	if (err != nil) {
+		log.Println("OOPS ERROR", err.Error())
+	} else {
+		log.Println("OHAI", len(posts), "posts")
+	}
+
+	data := make(map[string] interface{})
+	data["posts"] = posts
+	data["title"] = "markpasc"
+
+	baseurl, err := url.Parse("/")
+	baseurl.Host = r.Host
+	// TODO: somehow determine if we're on HTTPS or no?
+	baseurl.Scheme = "http"
+	baseurl.Fragment = ""
+	data["baseurl"] = strings.TrimRight(baseurl.String(), "/")
+	log.Println("Rendering RSS with baseurl of", data["baseurl"])
+
+	xml := mustache.RenderFile("html/rss.xml", data)
+	w.Header().Set("Content-Type", "application/rss+xml")
+	w.Write([]byte(xml))
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -239,6 +277,7 @@ func main() {
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/2012/", permalink)
 	http.HandleFunc("/post", makepost)
+	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/", index)
 
 	log.Println("Ohai web servin'")

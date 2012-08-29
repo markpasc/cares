@@ -54,7 +54,7 @@
 
         function sendPost() {
             data = {
-                'html': $.trim($('#newpost .body').text())
+                'html': $.trim($('#newpost .body').html())
             };
             if (!data['html'])
                 return false;
