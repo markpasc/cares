@@ -174,7 +174,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string] interface{})
 	data["posts"] = posts
-	data["title"] = "markroblog"
+	data["title"] = "markpasc"
 	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
 	w.Write([]byte(html))
 }
@@ -197,7 +197,7 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string] interface{})
 	data["post"] = post
-	data["title"] = "markroblog • a post"
+	data["title"] = "markpasc • a post"
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
 	w.Write([]byte(html))
 }
