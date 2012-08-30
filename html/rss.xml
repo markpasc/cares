@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
-<rss version="2.0" xmlns:microblog="http://microblog.reallysimple.org/">
+<rss version="2.0" xmlns:microblog="http://microblog.reallysimple.org/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
 	<channel>
 		<title>{{title}}</title>
 		<link>{{baseurl}}/</link>
+		<atom:link rel="self" type="application/rss+xml" href="{{baseurl}}/rss"/>
 		<description>a microblog</description>
 		<docs>http://www.rssboard.org/rss-specification</docs>
 		<generator>cares 1.0</generator>
@@ -22,6 +23,12 @@
 				<guid>{{baseurl}}{{Permalink}}</guid>
 				<description>{{{HtmlXML}}}</description>
 				<pubDate>{{PostedRSS}}</pubDate>
+				<dc:creator>{{title}}</dc:creator>
+				{{#comment}}
+					<!-- link for posts with single links -->
+					<!-- enclosure for images -->
+					<!-- source for repeats -->
+				{{/comment}}
 			</item>
 		{{/posts}}
 
