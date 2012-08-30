@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/bmizerany/pq"
 	"github.com/hoisie/mustache"
-	_ "github.com/jbarham/gopgsqldriver"
 	"log"
 	"net/http"
 	"net/url"
@@ -21,13 +21,15 @@ import (
 var db *sql.DB
 
 type Post struct {
-	Id     uint64
-	Html   string
-	Posted time.Time
+	Id      uint64
+	Html    string
+	Posted  time.Time
+	Created time.Time
+	Deleted pq.NullTime
 }
 
 func NewPost() (p *Post) {
-	p = &Post{0, "", time.Now()}
+	p = &Post{0, "", time.Now(), time.Now().UTC(), pq.NullTime{time.Unix(0, 0), false}}
 	return
 }
 
@@ -68,8 +70,8 @@ func (p *Post) Save() (err error) {
 	if p.Id == 0 {
 		//var result sql.Result
 		//result, err = db.Exec("INSERT INTO post (html, posted) VALUES ($1, $2) RETURNING id",
-		row := db.QueryRow("INSERT INTO post (html, posted) VALUES ($1, $2) RETURNING id",
-			p.Html, p.Posted)
+		row := db.QueryRow("INSERT INTO post (html, posted, created, deleted) VALUES ($1, $2, $3, $4) RETURNING id",
+			p.Html, p.Posted, p.Created, p.Deleted)
 		var id uint64
 		err = row.Scan(&id)
 		if err != nil {
@@ -77,30 +79,31 @@ func (p *Post) Save() (err error) {
 		}
 		p.Id = id
 	} else {
-		_, err = db.Exec("UPDATE post SET html = $1, posted = $2 WHERE id = $3",
-			p.Html, p.Posted, p.Id)
+		_, err = db.Exec("UPDATE post SET html = $2, posted = $3, created = $4, deleted = $5 WHERE id = $1",
+			p.Id, p.Html, p.Posted, p.Created, p.Deleted)
 	}
 	return nil
 }
 
+func (p *Post) MarkDeleted() (err error) {
+	p.Deleted = pq.NullTime{time.Now().UTC(), true}
+	return p.Save()
+}
+
 func PostById(id uint64) (*Post, error) {
-	row := db.QueryRow("SELECT html, posted FROM post WHERE id = $1", id)
+	row := db.QueryRow("SELECT html, posted, created FROM post WHERE id = $1 AND deleted IS NULL", id)
 
 	var html string
-	var posted string
-	err := row.Scan(&html, &posted)
+	var posted time.Time
+	var created time.Time
+	err := row.Scan(&html, &posted, &created)
 	if err != nil {
 		log.Println("Error querying database for post #", id, ":", err.Error())
 		return nil, err
 	}
-	log.Println("Got time string:", posted)
-	postedTime, err := time.Parse("2006-01-02 15:04:05.000000", posted)
-	if err != nil {
-		log.Println("Error converting database date", posted, "to a time:", err.Error())
-		return nil, err
-	}
 
-	post := &Post{id, html, postedTime}
+	deleted := pq.NullTime{time.Unix(0, 0), false}
+	post := &Post{id, html, posted, created, deleted}
 	return post, nil
 }
 
@@ -126,7 +129,7 @@ func PostBySlug(slug string) (*Post, error) {
 }
 
 func RecentPosts(count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT * FROM post ORDER BY posted DESC LIMIT 10")
+	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT 10")
 	if err != nil {
 		log.Println("Error querying database for", count, "posts:", err.Error())
 		return nil, err
@@ -136,20 +139,18 @@ func RecentPosts(count int) ([]*Post, error) {
 	posts := make([]*Post, 0, count)
 	var id uint64
 	var html string
-	var posted string
-	var postedTime time.Time
+	var posted time.Time
+	var created time.Time
 	i := 0
 	for rows.Next() {
-		err = rows.Scan(&id, &html, &posted)
+		err = rows.Scan(&id, &html, &posted, &created)
 		if err != nil {
 			log.Println("Error scanning row", i, ":", err.Error())
 			return nil, err
 		}
 
-		log.Println("Got time string", posted)
-		postedTime, err = time.Parse("2006-01-02 15:04:05.000000", posted)
 		posts = posts[0 : i+1]
-		posts[i] = &Post{id, html, postedTime}
+		posts[i] = &Post{id, html, posted, created, pq.NullTime{time.Unix(0, 0), false}}
 		i++
 	}
 
@@ -213,6 +214,19 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	post, err := PostBySlug(idstr)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("invalid post %s: %s", idstr, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	if r.Method == "DELETE" {
+		if !isAuthed(w, r) {
+			return
+		}
+
+		post.MarkDeleted()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("{\"ok\":true}"))
 		return
 	}
 
@@ -291,7 +305,7 @@ func static(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
-	db, err = sql.Open("postgres", "host=localhost dbname=cares")
+	db, err = sql.Open("postgres", "host=localhost dbname=cares sslmode=disable")
 	if err == nil {
 		// Try a query to make sure it worked.
 		_, err = db.Query("SELECT 1")
