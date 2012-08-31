@@ -11,6 +11,33 @@ import (
 	"strings"
 )
 
+func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
+	authed = false
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Basic ") {
+		log.Println("Yay, client gave a Basic auth header")
+		userpass, err := base64.StdEncoding.DecodeString(authHeader[6:])
+		if err == nil {
+			userpassParts := strings.SplitN(string(userpass), ":", 2)
+			user, pass := userpassParts[0], userpassParts[1]
+			if user == "markpasc" && pass == "password" {
+				log.Println("Yay, client authorized!")
+				authed = true
+			} else {
+				log.Println("Oops, client gave a bad username:password pair")
+			}
+		} else {
+			log.Println("Oops, error decoding the client's Basic auth header:", err.Error())
+		}
+	}
+
+	if !authed {
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"cares\"")
+		http.Error(w, "authorization required", http.StatusUnauthorized)
+	}
+	return
+}
+
 func rss(w http.ResponseWriter, r *http.Request) {
 	posts, err := RecentPosts(10)
 	if err != nil {
@@ -83,33 +110,6 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	data["title"] = "markpasc • a post"
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
 	w.Write([]byte(html))
-}
-
-func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
-	authed = false
-	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Basic ") {
-		log.Println("Yay, client gave a Basic auth header")
-		userpass, err := base64.StdEncoding.DecodeString(authHeader[6:])
-		if err == nil {
-			userpassParts := strings.SplitN(string(userpass), ":", 2)
-			user, pass := userpassParts[0], userpassParts[1]
-			if user == "markpasc" && pass == "password" {
-				log.Println("Yay, client authorized!")
-				authed = true
-			} else {
-				log.Println("Oops, client gave a bad username:password pair")
-			}
-		} else {
-			log.Println("Oops, error decoding the client's Basic auth header:", err.Error())
-		}
-	}
-
-	if !authed {
-		w.Header().Set("WWW-Authenticate", "Basic realm=\"cares\"")
-		http.Error(w, "authorization required", http.StatusUnauthorized)
-	}
-	return
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
