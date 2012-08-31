@@ -48,7 +48,7 @@
         return new Array((2 - string.length) + 1).join('0') + string;
       };
 
-      return format.replace(/\%([aAbBcdHImMpSwyY])/g, function(part) {
+      return format.replace(/\%([aAbBcdHiImMpSwyY])/g, function(part) {
         switch(part[1]) {
           case 'a': return translation.shortDays[day]; break;
           case 'A': return translation.days[day]; break;
@@ -57,10 +57,11 @@
           case 'c': return date.toString(); break;
           case 'd': return pad(date.getDate()); break;
           case 'H': return pad(hours); break;
-          case 'I': return pad((hours + 12) % 12); break;
+          case 'i': return ((hours + 12) % 12) || 12; break;
+          case 'I': return pad(((hours + 12) % 12) || 12); break;
           case 'm': return pad(month + 1); break;
           case 'M': return pad(minutes); break;
-          case 'p': return hours > 12 ? 'PM' : 'AM'; break;
+          case 'p': return hours > 11 ? 'PM' : 'AM'; break;
           case 'S': return pad(date.getSeconds()); break;
           case 'w': return day; break;
           case 'y': return pad(date.getFullYear() % 100); break;
