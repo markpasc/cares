@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hoisie/mustache"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -50,11 +51,13 @@ func rss(w http.ResponseWriter, r *http.Request) {
 	data["posts"] = posts
 	data["title"] = "markpasc"
 
+	host, _, err := net.SplitHostPort(r.Host)
+	data["host"] = host
+
 	baseurl, err := url.Parse("/")
-	baseurl.Host = r.Host
+	baseurl.Host = r.Host  // including port
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurl.Scheme = "http"
-	baseurl.Fragment = ""
 	data["baseurl"] = strings.TrimRight(baseurl.String(), "/")
 	log.Println("Rendering RSS with baseurl of", data["baseurl"])
 
