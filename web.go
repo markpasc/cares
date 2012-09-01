@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,27 +13,39 @@ import (
 	"strings"
 )
 
-func isAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
-	authed = false
-	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Basic ") {
-		log.Println("Yay, client gave a Basic auth header")
-		userpass, err := base64.StdEncoding.DecodeString(authHeader[6:])
-		if err == nil {
-			userpassParts := strings.SplitN(string(userpass), ":", 2)
-			user, pass := userpassParts[0], userpassParts[1]
-			if user == "markpasc" && pass == "password" {
-				log.Println("Yay, client authorized!")
-				authed = true
-			} else {
-				log.Println("Oops, client gave a bad username:password pair")
-			}
-		} else {
-			log.Println("Oops, error decoding the client's Basic auth header:", err.Error())
-		}
+func authedForHeader(authHeader string) (bool, error) {
+	if !strings.HasPrefix(authHeader, "Basic ") {
+		return false, nil
+	}
+	log.Println("Yay, client gave a Basic auth header")
+
+	userpass, err := base64.StdEncoding.DecodeString(authHeader[6:])
+	if err != nil {
+		log.Println("Oops, error decoding the client's Basic auth header:", err.Error())
+		// but report it as Unauthorized, not an error
+		return false, nil
+	}
+	userpassParts := strings.SplitN(string(userpass), ":", 2)
+	username, pass := userpassParts[0], userpassParts[1]
+
+	account, err := AccountByName(username)
+	if err == sql.ErrNoRows {
+		log.Println("No such account %s", username)
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
 
-	if !authed {
+	return account.HasPassword(pass), nil
+}
+
+func IsAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
+	authHeader := r.Header.Get("Authorization")
+	authed, err := authedForHeader(authHeader)
+	if err != nil {
+		log.Println("Error checking auth information:", err.Error())
+		http.Error(w, "error loading auth information", http.StatusInternalServerError)
+	} else if !authed {
 		w.Header().Set("WWW-Authenticate", "Basic realm=\"cares\"")
 		http.Error(w, "authorization required", http.StatusUnauthorized)
 	}
@@ -55,7 +68,7 @@ func rss(w http.ResponseWriter, r *http.Request) {
 	data["host"] = host
 
 	baseurl, err := url.Parse("/")
-	baseurl.Host = r.Host  // including port
+	baseurl.Host = r.Host // including port
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurl.Scheme = "http"
 	data["baseurl"] = strings.TrimRight(baseurl.String(), "/")
@@ -96,7 +109,7 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "DELETE" {
-		if !isAuthed(w, r) {
+		if !IsAuthed(w, r) {
 			return
 		}
 
@@ -121,7 +134,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST is required", http.StatusMethodNotAllowed)
 		return
 	}
-	if !isAuthed(w, r) {
+	if !IsAuthed(w, r) {
 		return
 	}
 
