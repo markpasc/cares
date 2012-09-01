@@ -11,6 +11,10 @@ type Account struct {
 	passwordHash string
 }
 
+func NewAccount() *Account {
+	return &Account{0, "", "", ""}
+}
+
 func AccountByName(name string) (*Account, error) {
 	row := db.QueryRow("SELECT id, passwordHash, displayName FROM account WHERE name = $1 LIMIT 1",
 		name)

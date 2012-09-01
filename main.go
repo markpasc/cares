@@ -1,10 +1,31 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
+	"flag"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 )
+
+func prompt(prompt string) (ret string) {
+	input := bufio.NewReader(os.Stdin)
+	os.Stdout.Write([]byte(prompt))
+	for {
+		line, isPrefix, err := input.ReadLine()
+		if err != nil {
+			return
+		}
+		ret += string(line)
+		if !isPrefix {
+			break
+		}
+	}
+	ret = strings.TrimSpace(ret)
+	return
+}
 
 func main() {
 	var err error
@@ -15,6 +36,27 @@ func main() {
 	}
 	if err != nil {
 		log.Println("Error connecting to db:", err.Error())
+		return
+	}
+
+	var makeaccount bool
+	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
+	flag.Parse()
+
+	if makeaccount {
+		name := prompt("Name: ")
+		pass := prompt("Password: ")
+		displayName := prompt("Display name: ")
+
+		account := NewAccount()
+		account.Name = name
+		account.DisplayName = displayName
+		account.SetPassword(pass)
+		err := account.Save()
+		if err != nil {
+			log.Println("Error saving new account:", err.Error())
+		}
+
 		return
 	}
 
