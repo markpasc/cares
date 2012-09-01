@@ -63,8 +63,6 @@ func (p *Post) Slug() string {
 
 func (p *Post) Save() (err error) {
 	if p.Id == 0 {
-		//var result sql.Result
-		//result, err = db.Exec("INSERT INTO post (html, posted) VALUES ($1, $2) RETURNING id",
 		row := db.QueryRow("INSERT INTO post (html, posted, created, deleted) VALUES ($1, $2, $3, $4) RETURNING id",
 			p.Html, p.Posted, p.Created, p.Deleted)
 		var id uint64
