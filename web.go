@@ -138,12 +138,13 @@ func post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go NotifyRssCloud(fmt.Sprintf("http://%s/rss", r.Host))
+
 	ret, err := json.Marshal(post)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(ret)
 }

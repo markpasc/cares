@@ -20,6 +20,7 @@ func main() {
 
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/rss", rss)
+	http.HandleFunc("/rssCloud", rssCloud)
 	http.HandleFunc("/post", post)
 	//http.HandleFunc("/archive/", archive)
 	http.HandleFunc("/post/", permalink)
