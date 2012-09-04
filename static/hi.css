@@ -32,6 +32,12 @@ h1 a:hover {
     border-bottom: 2px solid black;
 }
 
+h1 img.avatar {
+    width: 75px;
+    height: 75px;
+    border-radius: 5px;
+}
+
 p {
     font-family: 'League Gothic', sans-serif;
     font-size: 1.8em;
