@@ -71,7 +71,7 @@ func rss(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]interface{}{
 		"posts": posts,
-		"title": owner.DisplayName,
+		"OwnerName": owner.DisplayName,
 		"baseurl": strings.TrimRight(baseurl.String(), "/"),
 		"host": host,
 		"port": port,
@@ -99,7 +99,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 	owner := AccountForOwner()
 	data := map[string]interface{}{
 		"posts": posts,
-		"title": owner.DisplayName,
+		"Title": owner.DisplayName,
+		"OwnerName": owner.DisplayName,
 	}
 	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
 	w.Write([]byte(html))
@@ -129,7 +130,8 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	owner := AccountForOwner()
 	data := map[string]interface{}{
 		"post": post,
-		"title": "a post • " + owner.DisplayName,
+		"Title": "a post • " + owner.DisplayName,
+		"OwnerName": owner.DisplayName,
 	}
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
 	w.Write([]byte(html))

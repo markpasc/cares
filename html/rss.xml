@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:microblog="http://microblog.reallysimple.org/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
 	<channel>
-		<title>{{title}}</title>
+		<title>{{OwnerName}}</title>
 		<link>{{baseurl}}/</link>
 		<atom:link rel="self" type="application/rss+xml" href="{{baseurl}}/rss"/>
 		<description>a microblog</description>
@@ -13,7 +13,7 @@
 
 		<image>
 			<link>{{baseurl}}/</link>
-			<title>{{title}}</title>
+			<title>{{OwnerName}}</title>
 			<url>{{baseurl}}/static/avatar-250.jpg</url>
 			<height>250</height>
 			<width>250</width>
@@ -25,7 +25,7 @@
 				<guid>{{baseurl}}{{Permalink}}</guid>
 				<description>{{{HtmlXML}}}</description>
 				<pubDate>{{PostedRSS}}</pubDate>
-				<dc:creator>{{title}}</dc:creator>
+				<dc:creator>{{OwnerName}}</dc:creator>
 				{{#comment}}
 					<!-- link for posts with single links -->
 					<!-- enclosure for images -->
