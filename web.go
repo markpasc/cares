@@ -60,20 +60,23 @@ func rss(w http.ResponseWriter, r *http.Request) {
 		log.Println("OHAI", len(posts), "posts")
 	}
 
-	data := make(map[string]interface{})
-	data["posts"] = posts
-	data["title"] = "markpasc"
-
-	host, _, err := net.SplitHostPort(r.Host)
-	data["host"] = host
+	// TODO: what does this do when the Host header has no port?
+	host, port, err := net.SplitHostPort(r.Host)
+	owner := AccountForOwner()
 
 	baseurl, err := url.Parse("/")
 	baseurl.Host = r.Host // including port
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurl.Scheme = "http"
-	data["baseurl"] = strings.TrimRight(baseurl.String(), "/")
-	log.Println("Rendering RSS with baseurl of", data["baseurl"])
 
+	data := map[string]interface{}{
+		"posts": posts,
+		"title": owner.DisplayName,
+		"baseurl": strings.TrimRight(baseurl.String(), "/"),
+		"host": host,
+		"port": port,
+	}
+	log.Println("Rendering RSS with baseurl of", data["baseurl"])
 	xml := mustache.RenderFile("html/rss.xml", data)
 	w.Header().Set("Content-Type", "application/rss+xml")
 	w.Write([]byte(xml))
@@ -93,9 +96,11 @@ func index(w http.ResponseWriter, r *http.Request) {
 		log.Println("OHAI", len(posts), "posts")
 	}
 
-	data := make(map[string]interface{})
-	data["posts"] = posts
-	data["title"] = "markpasc"
+	owner := AccountForOwner()
+	data := map[string]interface{}{
+		"posts": posts,
+		"title": owner.DisplayName,
+	}
 	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
 	w.Write([]byte(html))
 }
@@ -121,9 +126,11 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := make(map[string]interface{})
-	data["post"] = post
-	data["title"] = "markpasc • a post"
+	owner := AccountForOwner()
+	data := map[string]interface{}{
+		"post": post,
+		"title": "a post • " + owner.DisplayName,
+	}
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
 	w.Write([]byte(html))
 }

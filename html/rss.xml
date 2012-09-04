@@ -9,7 +9,7 @@
 		<generator>cares 1.0</generator>
 		<language>en-us</language>
 
-		<cloud domain="{{host}}" path="/rssCloud" port="8080" protocol="xml-rpc" registerProcedure="cloud.notify"/>
+		<cloud domain="{{host}}" path="/rssCloud" port="{{port}}" protocol="xml-rpc" registerProcedure="cloud.notify"/>
 
 		<image>
 			<link>{{baseurl}}/</link>

@@ -39,6 +39,13 @@ func main() {
 		return
 	}
 
+	// Load the site owner.
+	err = LoadAccountForOwner()
+	if err != nil {
+		log.Println("Error loading site owner:", err.Error())
+		return
+	}
+
 	var makeaccount bool
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
 	flag.Parse()
