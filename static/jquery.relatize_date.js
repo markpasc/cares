@@ -48,7 +48,7 @@
         return new Array((2 - string.length) + 1).join('0') + string;
       };
 
-      return format.replace(/\%([aAbBcdHiImMpSwyY])/g, function(part) {
+      return format.replace(/\%([aAbBcdDHiImMpSwyY])/g, function(part) {
         switch(part[1]) {
           case 'a': return translation.shortDays[day]; break;
           case 'A': return translation.days[day]; break;
@@ -56,6 +56,7 @@
           case 'B': return translation.months[month]; break;
           case 'c': return date.toString(); break;
           case 'd': return pad(date.getDate()); break;
+          case 'D': return date.getDate(); break;
           case 'H': return pad(hours); break;
           case 'i': return ((hours + 12) % 12) || 12; break;
           case 'I': return pad(((hours + 12) % 12) || 12); break;

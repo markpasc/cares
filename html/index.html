@@ -77,7 +77,7 @@
                     var $permalink = $post.find('.time a');
                     var posted = new Date(Date.parse(data['Posted']));
                     $permalink.attr('href', '/' + posted.getUTCFullYear() + '/' + data['Id']);
-                    var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %d %b %Y");
+                    var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %D %b %Y");
                     $permalink.html(postedText);
                     $('#newpost').after($post);
                     $post.show();
