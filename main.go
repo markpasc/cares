@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func prompt(prompt string) (ret string) {
+func Prompt(prompt string) (ret string) {
 	input := bufio.NewReader(os.Stdin)
 	os.Stdout.Write([]byte(prompt))
 	for {
@@ -27,46 +27,22 @@ func prompt(prompt string) (ret string) {
 	return
 }
 
-func main() {
-	var err error
-	db, err = sql.Open("postgres", "host=localhost dbname=cares sslmode=disable")
-	if err == nil {
-		// Try a query to make sure it worked.
-		_, err = db.Query("SELECT 1")
-	}
+func MakeAccount() {
+	name := Prompt("Name: ")
+	pass := Prompt("Password: ")
+	displayName := Prompt("Display name: ")
+
+	account := NewAccount()
+	account.Name = name
+	account.DisplayName = displayName
+	account.SetPassword(pass)
+	err := account.Save()
 	if err != nil {
-		log.Println("Error connecting to db:", err.Error())
-		return
+		log.Println("Error saving new account:", err.Error())
 	}
+}
 
-	// Load the site owner.
-	err = LoadAccountForOwner()
-	if err != nil {
-		log.Println("Error loading site owner:", err.Error())
-		return
-	}
-
-	var makeaccount bool
-	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
-	flag.Parse()
-
-	if makeaccount {
-		name := prompt("Name: ")
-		pass := prompt("Password: ")
-		displayName := prompt("Display name: ")
-
-		account := NewAccount()
-		account.Name = name
-		account.DisplayName = displayName
-		account.SetPassword(pass)
-		err := account.Save()
-		if err != nil {
-			log.Println("Error saving new account:", err.Error())
-		}
-
-		return
-	}
-
+func ServeWeb() {
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/rssCloud", rssCloud)
@@ -77,4 +53,32 @@ func main() {
 
 	log.Println("Ohai web servin'")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func main() {
+	var makeaccount bool
+	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
+	flag.Parse()
+
+	var err error
+	db, err = sql.Open("postgres", "host=localhost dbname=cares sslmode=disable")
+	if err == nil {
+		// Try a query to make sure it worked.
+		_, err = db.Query("SELECT 1")
+	}
+	if err != nil {
+		log.Println("Error connecting to db:", err.Error())
+		return
+	}
+	err = LoadAccountForOwner()
+	if err != nil {
+		log.Println("Error loading site owner:", err.Error())
+		return
+	}
+
+	if makeaccount {
+		MakeAccount()
+	} else {
+		ServeWeb()
+	}
 }
