@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"database/sql"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -68,7 +69,7 @@ func MakeAccount() {
 	}
 }
 
-func ServeWeb() {
+func ServeWeb(port int) {
 	err := LoadAccountForOwner()
 	if err != nil {
 		logr.Errln("Error loading site owner:", err.Error())
@@ -84,7 +85,7 @@ func ServeWeb() {
 	http.HandleFunc("/", index)
 
 	logr.Debugln("Ohai web servin'")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 func SetUpDatabase(dsn string) (err error) {
@@ -100,9 +101,11 @@ func main() {
 	var dsn string
 	var makeaccount bool
 	var initdb bool
+	var port int
 	flag.StringVar(&dsn, "database", "dbname=cares sslmode=disable", "database connection info")
 	flag.BoolVar(&initdb, "init-db", false, "initialize the database")
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
+	flag.IntVar(&port, "port", 8080, "port on which to serve the web interface")
 	flag.Parse()
 
 	err := SetUpLogger()
@@ -122,6 +125,6 @@ func main() {
 	} else if makeaccount {
 		MakeAccount()
 	} else {
-		ServeWeb()
+		ServeWeb(port)
 	}
 }
