@@ -22,22 +22,24 @@ Cares' name is inspired by another Go microblog application, [nobodycares][].
 
 Cares is a web application that runs on your server, so it's probably a little fiddly for most people.
 
-Create a new Go environment (manually or with [gowork][]). In that environment, install Cares with `go get`:
+Install Cares to your Go environment with `go get`. (You might want to make a new environment manually or with [gowork][] first.)
 
 	$ go get github.com/markpasc/cares
 
 Set up a PostgreSQL database, and run Cares to initialize the database and make your user account:
 
+	$ createdb cares
+	$ createuser cares
+	$ psql -c 'grant all privileges on database cares to cares' cares
 	$ cares --database 'dbname=cares user=cares' --init
 
 Cares will ask for a login name and password for you to use when using the site, and set up the database. Then Cares is ready to run. You can check by invoking `cares` manually and connecting directly on its port:
 
 	$ cares --database 'dbname=cares user=cares' --port 8080
 
-Use a tool like [Supervisor][] to keep the server running normally. Configure a web server (such as Nginx) to proxy to the Cares site if you like. This will allow you to serve static files directly instead of through the Cares app.
+Yay, now Cares is built and running. Open it in the browser to mess around.
 
 [gowork]: https://github.com/markpasc/gowork
-[supervisor]: http://supervisord.org/
 
 
 ## Usage ##
@@ -47,13 +49,22 @@ Once installed and running, your site will appear on the web. To post, go to the
 Customize your site by editing the HTML templates (in the `html/` directory) and the static web files (in the `static/` directory) as appropriate.
 
 
+## Really installing ##
+
+* Use a tool like [Supervisor][] to keep the server running. See `extras/supervisor.example.conf` for an example Supervisor configuration.
+* Run the Cares app as an “app server,” behind a web server like Nginx. See `extras/nginx.example.conf` for an example Nginx site configuration.
+* Have the web server serve over HTTPS instead of HTTP.
+
+[supervisor]: http://supervisord.org/
+
+
 ## Future enhancements ##
 
 * following and reading others' streams
 * Atom & [PubSubHubbub][]
 * [JSON Activity Streams][]
-* [tent.io?][]
+* as much of [tent.io][] as is feasible
 
 [PubSubHubbub]: https://code.google.com/p/pubsubhubbub/
 [JSON Activity Streams]: http://activitystrea.ms/specs/json/1.0/
-[tent.io?]: http://tent.io/
+[tent.io]: http://tent.io/
