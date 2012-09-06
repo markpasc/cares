@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func authedForHeader(authHeader string) (bool, error) {
@@ -51,32 +53,107 @@ func IsAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
 	return
 }
 
-func rss(w http.ResponseWriter, r *http.Request) {
-	posts, err := RecentPosts(10)
-	if err != nil {
-		logr.Errln("Error loading posts for RSS feed:", err.Error())
+func WriteRssForPosts(w http.ResponseWriter, r *http.Request, posts []*Post, titleFormat string) (err error) {
+	var host string
+	var port string
+	if strings.Contains(r.Host, ":") {
+		host, port, err = net.SplitHostPort(r.Host)
+		if err != nil {
+			return
+		}
+	} else {
+		host = r.Host
+		// TODO: set port appropriately if we're on HTTPS
+		port = "80"
 	}
 
-	// TODO: what does this do when the Host header has no port?
-	host, port, err := net.SplitHostPort(r.Host)
 	owner := AccountForOwner()
+	firstPost, err := FirstPost()
+	if err != nil {
+		return
+	}
 
 	baseurl, err := url.Parse("/")
-	baseurl.Host = r.Host // including port
+	if err != nil {
+		return
+	}
+	baseurl.Host = r.Host // including port if any
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurl.Scheme = "http"
 
 	data := map[string]interface{}{
 		"posts": posts,
 		"OwnerName": owner.DisplayName,
+		"Title": fmt.Sprintf(titleFormat, owner.DisplayName),
 		"baseurl": strings.TrimRight(baseurl.String(), "/"),
 		"host": host,
 		"port": port,
+		"FirstPost": firstPost,
 	}
 	logr.Debugln("Rendering RSS with baseurl of", data["baseurl"])
 	xml := mustache.RenderFile("html/rss.xml", data)
 	w.Header().Set("Content-Type", "application/rss+xml")
 	w.Write([]byte(xml))
+	return
+}
+
+func rss(w http.ResponseWriter, r *http.Request) {
+	posts, err := RecentPosts(10)
+	if err != nil {
+		logr.Errln("Error loading posts for RSS feed:", err.Error())
+		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
+		return
+	}
+
+	err = WriteRssForPosts(w, r, posts, "%s")
+	if err != nil {
+		logr.Errln("Error building RSS for recent posts:", err.Error())
+		http.Error(w, "error generating rss for recent posts", http.StatusInternalServerError)
+	}
+}
+
+func archive(w http.ResponseWriter, r *http.Request) {
+	//  /archive/2012/09/06/rss.xml
+	// 0 1       2    3  4  5
+	pathParts := strings.SplitN(r.URL.Path, "/", 6)
+	if len(pathParts) != 6 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var year, month, day int
+	var err error
+	year, err = strconv.Atoi(pathParts[2])
+	if err == nil {
+		month, err = strconv.Atoi(pathParts[3])
+	}
+	if err == nil {
+		day, err = strconv.Atoi(pathParts[4])
+	}
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// TODO: support HTML archives too
+	if pathParts[5] != "rss.xml" {
+		http.NotFound(w, r)
+		return
+	}
+
+	archiveDate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+	posts, err := PostsOnDay(archiveDate)
+	if err != nil {
+		logr.Errln("Error getting posts for day", archiveDate, "from database:", err.Error())
+		http.Error(w, "error finding posts for day", http.StatusInternalServerError)
+		return
+	}
+
+	err = WriteRssForPosts(w, r, posts, archiveDate.Format("%s for _2 Jan 2006"))
+	if err != nil {
+		logr.Errln("Error generating RSS for date", archiveDate, ":", err.Error())
+		http.Error(w, "error generating rss for date", http.StatusInternalServerError)
+	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

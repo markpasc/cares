@@ -80,7 +80,7 @@ func ServeWeb(port int) {
 	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/rssCloud", rssCloud)
 	http.HandleFunc("/post", post)
-	//http.HandleFunc("/archive/", archive)
+	http.HandleFunc("/archive/", archive)
 	http.HandleFunc("/post/", permalink)
 	http.HandleFunc("/", index)
 

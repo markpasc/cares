@@ -10,6 +10,12 @@
 		<language>en-us</language>
 
 		<cloud domain="{{host}}" path="/rssCloud" port="{{port}}" protocol="xml-rpc" registerProcedure="cloud.notify"/>
+		{{#FirstPost}}
+		<microblog:archive>
+			<link>{{baseurl}}/archive/</link>
+			<startDay>{{PostedYmd}}</startDay>
+		</microblog:archive>
+		{{/FirstPost}}
 
 		<image>
 			<link>{{baseurl}}/</link>
