@@ -28,11 +28,11 @@ Create a new Go environment (manually or with [gowork][]). In that environment, 
 
 Set up a PostgreSQL database, and run Cares to initialize the database and make your user account:
 
-	$ cares --database 'host=localhost dbname=cares sslmode=disable' --init
+	$ cares --database 'dbname=cares user=cares' --init
 
 Cares will ask for a login name and password for you to use when using the site, and set up the database. Then Cares is ready to run. You can check by invoking `cares` manually and connecting directly on its port:
 
-	$ cares --database 'host=localhost dbname=cares sslmode=disable' --port 8080
+	$ cares --database 'dbname=cares user=cares' --port 8080
 
 Use a tool like [Supervisor][] to keep the server running normally. Configure a web server (such as Nginx) to proxy to the Cares site if you like. This will allow you to serve static files directly instead of through the Cares app.
 
