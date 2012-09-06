@@ -287,7 +287,14 @@ func rssCloud(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	hostname := r.Header.Get("X-Forwarded-For")
+	if hostname == "" {
+		hostname = r.RemoteAddr
+	} else {
+		hostnames := strings.SplitN(hostname, ",", 2)
+		hostname = hostnames[0]
+	}
+	host, _, err := net.SplitHostPort(hostname)
 	request.Host = host
 
 	if request.RequestMethodName != "cloud.notify" {
