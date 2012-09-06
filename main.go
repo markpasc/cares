@@ -31,7 +31,7 @@ func Prompt(prompt string) (ret string) {
 func InitializeDatabase() {
 	schemaBytes, err := ioutil.ReadFile("cares.sql")
 	if err != nil {
-		log.Println("Error reading database schema:", err.Error())
+		logr.Errln("Error reading database schema:", err.Error())
 		return
 	}
 
@@ -44,7 +44,7 @@ func InitializeDatabase() {
 
 		_, err = db.Exec(statement)
 		if err != nil {
-			log.Println("Error initializing database:", err.Error())
+			logr.Errln("Error initializing database:", err.Error())
 			return
 		}
 	}
@@ -64,14 +64,14 @@ func MakeAccount() {
 	account.SetPassword(pass)
 	err := account.Save()
 	if err != nil {
-		log.Println("Error saving new account:", err.Error())
+		logr.Errln("Error saving new account:", err.Error())
 	}
 }
 
 func ServeWeb() {
 	err := LoadAccountForOwner()
 	if err != nil {
-		log.Println("Error loading site owner:", err.Error())
+		logr.Errln("Error loading site owner:", err.Error())
 		return
 	}
 
@@ -83,8 +83,17 @@ func ServeWeb() {
 	http.HandleFunc("/post/", permalink)
 	http.HandleFunc("/", index)
 
-	log.Println("Ohai web servin'")
+	logr.Debugln("Ohai web servin'")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func SetUpDatabase(dsn string) (err error) {
+	db, err = sql.Open("postgres", dsn)
+	if err == nil {
+		// Try a query to make sure it worked.
+		_, err = db.Query("SELECT 1")
+	}
+	return
 }
 
 func main() {
@@ -96,14 +105,15 @@ func main() {
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
 	flag.Parse()
 
-	var err error
-	db, err = sql.Open("postgres", dsn)
-	if err == nil {
-		// Try a query to make sure it worked.
-		_, err = db.Query("SELECT 1")
-	}
+	err := SetUpLogger()
 	if err != nil {
-		log.Println("Error connecting to db:", err.Error())
+		log.Println("Error setting up logging:", err.Error())
+		return
+	}
+	defer logr.Close()
+	err = SetUpDatabase(dsn)
+	if err != nil {
+		logr.Errln("Error connecting to db: ", err.Error())
 		return
 	}
 

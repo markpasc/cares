@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hoisie/mustache"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,11 +16,11 @@ func authedForHeader(authHeader string) (bool, error) {
 	if !strings.HasPrefix(authHeader, "Basic ") {
 		return false, nil
 	}
-	log.Println("Yay, client gave a Basic auth header")
+	logr.Debugln("Yay, client gave a Basic auth header")
 
 	userpass, err := base64.StdEncoding.DecodeString(authHeader[6:])
 	if err != nil {
-		log.Println("Oops, error decoding the client's Basic auth header:", err.Error())
+		logr.Debugln("Oops, error decoding the client's Basic auth header:", err.Error())
 		// but report it as Unauthorized, not an error
 		return false, nil
 	}
@@ -30,7 +29,7 @@ func authedForHeader(authHeader string) (bool, error) {
 
 	account, err := AccountByName(username)
 	if err == sql.ErrNoRows {
-		log.Println("No such account %s", username)
+		logr.Debugln("No such account %s", username)
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -43,7 +42,7 @@ func IsAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
 	authHeader := r.Header.Get("Authorization")
 	authed, err := authedForHeader(authHeader)
 	if err != nil {
-		log.Println("Error checking auth information:", err.Error())
+		logr.Errln("Error checking auth information:", err.Error())
 		http.Error(w, "error loading auth information", http.StatusInternalServerError)
 	} else if !authed {
 		w.Header().Set("WWW-Authenticate", "Basic realm=\"cares\"")
@@ -55,9 +54,7 @@ func IsAuthed(w http.ResponseWriter, r *http.Request) (authed bool) {
 func rss(w http.ResponseWriter, r *http.Request) {
 	posts, err := RecentPosts(10)
 	if err != nil {
-		log.Println("OOPS ERROR", err.Error())
-	} else {
-		log.Println("OHAI", len(posts), "posts")
+		logr.Errln("Error loading posts for RSS feed:", err.Error())
 	}
 
 	// TODO: what does this do when the Host header has no port?
@@ -76,7 +73,7 @@ func rss(w http.ResponseWriter, r *http.Request) {
 		"host": host,
 		"port": port,
 	}
-	log.Println("Rendering RSS with baseurl of", data["baseurl"])
+	logr.Debugln("Rendering RSS with baseurl of", data["baseurl"])
 	xml := mustache.RenderFile("html/rss.xml", data)
 	w.Header().Set("Content-Type", "application/rss+xml")
 	w.Write([]byte(xml))
@@ -91,9 +88,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	posts, err := RecentPosts(10)
 	if err != nil {
-		log.Println("OOPS ERROR", err.Error())
-	} else {
-		log.Println("OHAI", len(posts), "posts")
+		logr.Errln("Error loading recent posts for home page:", err.Error())
 	}
 
 	owner := AccountForOwner()
@@ -173,6 +168,6 @@ func post(w http.ResponseWriter, r *http.Request) {
 
 func static(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
-	log.Println("Serving static file", path)
+	logr.Debugln("Serving static file", path)
 	http.ServeFile(w, r, path)
 }

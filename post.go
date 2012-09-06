@@ -8,7 +8,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/bmizerany/pq"
-	"log"
 	"strings"
 	"time"
 )
@@ -91,7 +90,7 @@ func PostById(id uint64) (*Post, error) {
 	var created time.Time
 	err := row.Scan(&html, &posted, &created)
 	if err != nil {
-		log.Println("Error querying database for post #", id, ":", err.Error())
+		logr.Errln("Error querying database for post #", id, ":", err.Error())
 		return nil, err
 	}
 
@@ -101,7 +100,7 @@ func PostById(id uint64) (*Post, error) {
 }
 
 func PostBySlug(slug string) (*Post, error) {
-	log.Println("Finding post id from slug", slug)
+	logr.Debugln("Finding post id from slug", slug)
 
 	// The decoder will want an even multiple of 8 bytes.
 	padLen := 8 - (len(slug) % 8)
@@ -116,7 +115,7 @@ func PostBySlug(slug string) (*Post, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("Read %d bytes decoding slug code %s", n, slug)
 	}
-	log.Println("Yay, reckoned slug", slug, "is id", id, ", looking up")
+	logr.Debugln("Yay, reckoned slug", slug, "is id", id, ", looking up")
 
 	return PostById(id)
 }
@@ -124,11 +123,11 @@ func PostBySlug(slug string) (*Post, error) {
 func RecentPosts(count int) ([]*Post, error) {
 	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT 10")
 	if err != nil {
-		log.Println("Error querying database for", count, "posts:", err.Error())
+		logr.Errln("Error querying database for", count, "posts:", err.Error())
 		return nil, err
 	}
 
-	log.Println("Deserializing all the returned posts")
+	logr.Debugln("Deserializing all the returned posts")
 	posts := make([]*Post, 0, count)
 	var id uint64
 	var html string
@@ -138,7 +137,7 @@ func RecentPosts(count int) ([]*Post, error) {
 	for rows.Next() {
 		err = rows.Scan(&id, &html, &posted, &created)
 		if err != nil {
-			log.Println("Error scanning row", i, ":", err.Error())
+			logr.Errln("Error scanning row", i, ":", err.Error())
 			return nil, err
 		}
 
@@ -149,7 +148,7 @@ func RecentPosts(count int) ([]*Post, error) {
 
 	err = rows.Err()
 	if err != nil {
-		log.Println("Error lookin' at rows:", err.Error())
+		logr.Errln("Error looking at rows:", err.Error())
 		return nil, err
 	}
 

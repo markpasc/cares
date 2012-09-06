@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/moovweb/gokogiri"
 	"github.com/moovweb/gokogiri/xml"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -97,7 +96,7 @@ func (r *RssCloudRequest) Unpack(doc *xml.XmlDocument) error {
 	}
 	r.FeedURL = params[0].Content()
 
-	log.Println("Unpacked cloud request!")
+	logr.Debugln("Unpacked cloud request!")
 	return nil
 }
 
@@ -114,7 +113,7 @@ func NewRssCloud() *RssCloud {
 }
 
 func (r *RssCloud) Notify(feedurl string) {
-	log.Println("Building RSS cloud notification for", r.URL)
+	logr.Debugln("Building RSS cloud notification for", r.URL)
 
 	body := new(bytes.Buffer)
 	body.WriteString(`<?xml version="1.0"?>
@@ -133,16 +132,16 @@ func (r *RssCloud) Notify(feedurl string) {
 
 	resp, err := http.Post(r.URL, "text/xml", body)
 	if err != nil {
-		log.Println("Error posting RSS cloud notification to", r.URL, ":", err.Error())
+		logr.Errln("Error posting RSS cloud notification to", r.URL, ":", err.Error())
 		return
 	}
 	// TODO: parse resp and see if it was a fault.
 	if resp == nil {
-		log.Println("Didn't get a response back posting RSS cloud notification", r.URL, "!!!")
+		logr.Errln("Didn't get a response back posting RSS cloud notification", r.URL, "!!!")
 		return
 	}
 
-	log.Println("Sent RSS cloud notification to", r.URL)
+	logr.Debugln("Sent RSS cloud notification to", r.URL)
 }
 
 func (r *RssCloud) Save() error {
@@ -222,11 +221,11 @@ func ActiveRssClouds() ([]*RssCloud, error) {
 }
 
 func NotifyRssCloud(feedurl string) {
-	log.Println("Sending RSS cloud notifications")
+	logr.Debugln("Sending RSS cloud notifications")
 
 	clouds, err := ActiveRssClouds()
 	if err != nil {
-		log.Println("Error finding RSS clouds to notify of feed update:", err.Error())
+		logr.Errln("Error finding RSS clouds to notify of feed update:", err.Error())
 		return
 	}
 
@@ -236,7 +235,7 @@ func NotifyRssCloud(feedurl string) {
 }
 
 func writeXmlRpcError(w http.ResponseWriter, err error) {
-	log.Println("Error serving rss cloud request:", err.Error())
+	logr.Errln("Error serving rss cloud request:", err.Error())
 	output := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 		<methodResponse>
 		<fault>
@@ -260,7 +259,7 @@ func writeXmlRpcError(w http.ResponseWriter, err error) {
 }
 
 func rssCloud(w http.ResponseWriter, r *http.Request) {
-	log.Println("Yay a cloud request!")
+	logr.Debugln("Yay a cloud request!")
 
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -271,7 +270,7 @@ func rssCloud(w http.ResponseWriter, r *http.Request) {
 	bodyBytes := make([]byte, r.ContentLength)
 	_, err := r.Body.Read(bodyBytes)
 	if err != nil {
-		log.Println("Could not read request body:", err.Error())
+		logr.Errln("Could not read request body:", err.Error())
 		http.Error(w, "Could not read body: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -306,7 +305,7 @@ func rssCloud(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Yay, asked to call back to http://", request.Host, ":", request.Port, request.Path,
+	logr.Debugln("Yay, asked to call back to http://", request.Host, ":", request.Port, request.Path,
 		"with method", request.MethodName, "!")
 
 	url, _ := url.Parse("/")
@@ -327,7 +326,7 @@ func rssCloud(w http.ResponseWriter, r *http.Request) {
 	if err == sql.ErrNoRows {
 		// That's cool.
 	} else if err != nil {
-		log.Println("Error loading rsscloud for URL", urlString, ":", err.Error())
+		logr.Errln("Error loading rsscloud for URL", urlString, ":", err.Error())
 		http.Error(w, "error looking for rsscloud for URL "+urlString, http.StatusInternalServerError)
 		return
 	}
@@ -340,7 +339,7 @@ func rssCloud(w http.ResponseWriter, r *http.Request) {
 	rssCloud.SubscribedUntil = time.Now().Add(time.Duration(25) * time.Hour).UTC()
 	err = rssCloud.Save()
 	if err != nil {
-		log.Println("Error saving rsscloud for URL", urlString, ":", err.Error())
+		logr.Errln("Error saving rsscloud for URL", urlString, ":", err.Error())
 		http.Error(w, "error saving rsscloud for URL "+urlString, http.StatusInternalServerError)
 		return
 	}
