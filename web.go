@@ -152,6 +152,66 @@ func archive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func activity(w http.ResponseWriter, r *http.Request) {
+	// TODO: somehow determine if we're on HTTPS or no?
+	baseurlUrl := url.URL{"http", "", nil, r.Host, "/", "", ""}
+	baseurl := strings.TrimRight(baseurlUrl.String(), "/")
+
+	owner := AccountForOwner()
+	actorData := map[string]interface{}{
+		"objectType": "person",
+		"url": baseurl + "/",
+		"id": baseurl + "/",
+		"displayName": owner.DisplayName,
+		"image": map[string]interface{}{
+			"url": baseurl + "/static/avatar-250.jpg",
+			"width": 250,
+			"height": 250,
+		},
+	}
+	targetData := map[string]interface{}{
+		"objectType": "blog",
+		"url": baseurl + "/",
+		"id": baseurl + "/",
+		"displayName": owner.DisplayName,
+	}
+
+	items, err := RecentPosts(10)
+	if err != nil {
+		logr.Errln("error finding recent posts for activity stream:", err.Error())
+		http.Error(w, "error finding recent activity", http.StatusInternalServerError)
+		return
+	}
+
+	itemData := make([]map[string]interface{}, len(items))
+	for i, item := range items {
+		itemData[i] = map[string]interface{}{
+			"verb": "post",
+			"actor": actorData,
+			"target": targetData,
+			"published": item.Posted,
+			"object": map[string]interface{}{
+				"content": item.Html,
+				"url": baseurl + item.Permalink(),
+				"id": baseurl + item.Permalink(),
+				"published": item.Posted,
+			},
+		}
+	}
+
+	streamData := map[string]interface{}{
+		"items": itemData,
+	}
+
+	streamBytes, err := json.Marshal(streamData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(streamBytes)
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Path) > 1 {
 		// Actually some other unhandled URL, so 404.
