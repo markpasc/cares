@@ -73,24 +73,20 @@ func WriteRssForPosts(w http.ResponseWriter, r *http.Request, posts []*Post, tit
 		return
 	}
 
-	baseurl, err := url.Parse("/")
-	if err != nil {
-		return
-	}
-	baseurl.Host = r.Host // including port if any
 	// TODO: somehow determine if we're on HTTPS or no?
-	baseurl.Scheme = "http"
+	baseurlUrl := url.URL{"http", "", nil, r.Host, "/", "", ""}
+	baseurl := strings.TrimRight(baseurlUrl.String(), "/")
 
 	data := map[string]interface{}{
 		"posts": posts,
 		"OwnerName": owner.DisplayName,
 		"Title": fmt.Sprintf(titleFormat, owner.DisplayName),
-		"baseurl": strings.TrimRight(baseurl.String(), "/"),
+		"baseurl": baseurl,
 		"host": host,
 		"port": port,
 		"FirstPost": firstPost,
 	}
-	logr.Debugln("Rendering RSS with baseurl of", data["baseurl"])
+	logr.Debugln("Rendering RSS with baseurl of", baseurl)
 	xml := mustache.RenderFile("html/rss.xml", data)
 	w.Header().Set("Content-Type", "application/rss+xml")
 	w.Write([]byte(xml))
