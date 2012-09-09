@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"html/template"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -120,7 +121,9 @@ func ImportThinkup(path string) {
 		}
 
 		// TODO: make the links link.
-		post.Html = template.HTMLEscapeString(data["post_text"])
+		html := template.HTMLEscapeString(data["post_text"])
+		html = strings.Replace(html, "\n", "<br>\n", -1)
+		post.Html = html
 
 		// TODO: store the source?
 		// TODO: store the geoplace
