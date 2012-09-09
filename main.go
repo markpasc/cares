@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -27,31 +25,6 @@ func Prompt(prompt string) (ret string) {
 	}
 	ret = strings.TrimSpace(ret)
 	return
-}
-
-func InitializeDatabase() {
-	schemaBytes, err := ioutil.ReadFile("cares.sql")
-	if err != nil {
-		logr.Errln("Error reading database schema:", err.Error())
-		return
-	}
-
-	statements := strings.Split(string(schemaBytes), ";\n")
-	for _, statement := range statements {
-		statement = strings.TrimSpace(statement)
-		if statement == "" {
-			continue
-		}
-
-		_, err = db.Exec(statement)
-		if err != nil {
-			logr.Errln("Error initializing database:", err.Error())
-			return
-		}
-	}
-
-	// Then make the owner record too.
-	MakeAccount()
 }
 
 func MakeAccount() {
@@ -89,23 +62,16 @@ func ServeWeb(port int) {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
-func SetUpDatabase(dsn string) (err error) {
-	db, err = sql.Open("postgres", dsn)
-	if err == nil {
-		// Try a query to make sure it worked.
-		_, err = db.Query("SELECT 1")
-	}
-	return
-}
-
 func main() {
 	var dsn string
 	var makeaccount bool
 	var initdb bool
+	var upgradedb bool
 	var port int
 	flag.StringVar(&dsn, "database", "dbname=cares sslmode=disable", "database connection info")
-	flag.BoolVar(&initdb, "init-db", false, "initialize the database")
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
+	flag.BoolVar(&initdb, "init-db", false, "initialize the database")
+	flag.BoolVar(&upgradedb, "upgrade-db", false, "upgrade the database schema")
 	flag.IntVar(&port, "port", 8080, "port on which to serve the web interface")
 	flag.Parse()
 
@@ -115,14 +81,17 @@ func main() {
 		return
 	}
 	defer logr.Close()
-	err = SetUpDatabase(dsn)
+
+	err = OpenDatabase(dsn, upgradedb)
 	if err != nil {
-		logr.Errln("Error connecting to db: ", err.Error())
+		logr.Errln("Error connecting to database:", err.Error())
 		return
 	}
 
 	if initdb {
 		InitializeDatabase()
+	} else if upgradedb {
+		UpgradeDatabase()
 	} else if makeaccount {
 		MakeAccount()
 	} else {

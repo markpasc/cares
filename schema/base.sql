@@ -20,3 +20,8 @@ CREATE TABLE rsscloud (
 	subscribedUntil TIMESTAMP NOT NULL,
 	created TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE schema (
+	version INTEGER UNIQUE NOT NULL,
+	upgraded TIMESTAMP NOT NULL DEFAULT NOW()
+);

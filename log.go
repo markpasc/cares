@@ -1,30 +1,40 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"log/syslog"
+	"os"
 )
 
 type Logger struct {
-	*syslog.Writer
+	*log.Logger
+	level syslog.Priority
 }
 
 var logr *Logger
 
 func NewLogger() (*Logger, error) {
-	writer, err := syslog.New(syslog.LOG_EMERG, "cares")
-	if err != nil {
-		return nil, err
-	}
-	return &Logger{writer}, nil
+	writer := os.Stderr
+	logger := log.New(writer, log.Prefix(), log.LstdFlags)
+	return &Logger{logger, syslog.LOG_DEBUG}, nil
 }
 
 func (l *Logger) Debugln(v ...interface{}) error {
-	return l.Debug(fmt.Sprintln(v...))
+	if l.level >= syslog.LOG_DEBUG {
+		l.Println(v...)
+	}
+	return nil
 }
 
 func (l *Logger) Errln(v ...interface{}) error {
-	return l.Err(fmt.Sprintln(v...))
+	if l.level >= syslog.LOG_ERR {
+		l.Println(v...)
+	}
+	return nil
+}
+
+func (l *Logger) Close() error {
+	return nil
 }
 
 func SetUpLogger() (err error) {
