@@ -12,6 +12,8 @@ const (
 	SCHEMA_VERSION = 2
 )
 
+var db *sql.DB
+
 func DatabaseVersion() (version int, err error) {
 	// Look what version of the database we're on (and try a query to make
 	// sure it worked anyway).

@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-var db *sql.DB
-
 type Post struct {
 	Id      uint64
 	Html    string
