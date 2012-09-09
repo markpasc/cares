@@ -54,6 +54,11 @@ func RunSqlFile(filename string) (err error) {
 		return
 	}
 
+	_, err = db.Query("BEGIN")
+	if err != nil {
+		return
+	}
+
 	statements := strings.Split(string(schemaBytes), ";\n")
 	for _, statement := range statements {
 		statement = strings.TrimSpace(statement)
@@ -63,10 +68,12 @@ func RunSqlFile(filename string) (err error) {
 
 		_, err = db.Query(statement)
 		if err != nil {
+			db.Query("ROLLBACK")
 			return
 		}
 	}
 
+	_, err = db.Query("COMMIT")
 	return
 }
 
