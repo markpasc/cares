@@ -24,8 +24,7 @@ func DatabaseVersion() (version int, err error) {
 		}
 
 		// Table doesn't exist is version 0.
-		pqerr := err.(*pq.PGError)
-		if pqerr.Get('C') == "42P01" {
+		if pqerr, ok := err.(*pq.PGError); ok && pqerr.Get('C') == "42P01" {
 			return 0, nil
 		}
 	}
