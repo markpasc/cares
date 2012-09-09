@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	SCHEMA_VERSION = 1
+	SCHEMA_VERSION = 2
 )
 
 func DatabaseVersion() (version int, err error) {

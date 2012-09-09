@@ -64,14 +64,14 @@ func ServeWeb(port int) {
 
 func main() {
 	var dsn string
-	var makeaccount bool
-	var initdb bool
-	var upgradedb bool
+	var makeaccount, initdb, upgradedb bool
+	var importthinkup string
 	var port int
 	flag.StringVar(&dsn, "database", "dbname=cares sslmode=disable", "database connection info")
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
 	flag.BoolVar(&initdb, "init-db", false, "initialize the database")
 	flag.BoolVar(&upgradedb, "upgrade-db", false, "upgrade the database schema")
+	flag.StringVar(&importthinkup, "import-thinkup", "", "path to a Thinkup CSV export to import")
 	flag.IntVar(&port, "port", 8080, "port on which to serve the web interface")
 	flag.Parse()
 
@@ -94,6 +94,8 @@ func main() {
 		UpgradeDatabase()
 	} else if makeaccount {
 		MakeAccount()
+	} else if importthinkup != "" {
+		ImportThinkup(importthinkup)
 	} else {
 		ServeWeb(port)
 	}
