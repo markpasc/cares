@@ -78,12 +78,12 @@ func WriteRssForPosts(w http.ResponseWriter, r *http.Request, posts []*Post, tit
 	baseurl := strings.TrimRight(baseurlUrl.String(), "/")
 
 	data := map[string]interface{}{
-		"posts": posts,
+		"posts":     posts,
 		"OwnerName": owner.DisplayName,
-		"Title": fmt.Sprintf(titleFormat, owner.DisplayName),
-		"baseurl": baseurl,
-		"host": host,
-		"port": port,
+		"Title":     fmt.Sprintf(titleFormat, owner.DisplayName),
+		"baseurl":   baseurl,
+		"host":      host,
+		"port":      port,
 		"FirstPost": firstPost,
 	}
 	logr.Debugln("Rendering RSS with baseurl of", baseurl)
@@ -159,20 +159,20 @@ func activity(w http.ResponseWriter, r *http.Request) {
 
 	owner := AccountForOwner()
 	actorData := map[string]interface{}{
-		"objectType": "person",
-		"url": baseurl + "/",
-		"id": baseurl + "/",
+		"objectType":  "person",
+		"url":         baseurl + "/",
+		"id":          baseurl + "/",
 		"displayName": owner.DisplayName,
 		"image": map[string]interface{}{
-			"url": baseurl + "/static/avatar-250.jpg",
-			"width": 250,
+			"url":    baseurl + "/static/avatar-250.jpg",
+			"width":  250,
 			"height": 250,
 		},
 	}
 	targetData := map[string]interface{}{
-		"objectType": "blog",
-		"url": baseurl + "/",
-		"id": baseurl + "/",
+		"objectType":  "blog",
+		"url":         baseurl + "/",
+		"id":          baseurl + "/",
 		"displayName": owner.DisplayName,
 	}
 
@@ -186,14 +186,14 @@ func activity(w http.ResponseWriter, r *http.Request) {
 	itemData := make([]map[string]interface{}, len(items))
 	for i, item := range items {
 		itemData[i] = map[string]interface{}{
-			"verb": "post",
-			"actor": actorData,
-			"target": targetData,
+			"verb":      "post",
+			"actor":     actorData,
+			"target":    targetData,
 			"published": item.Posted,
 			"object": map[string]interface{}{
-				"content": item.Html,
-				"url": baseurl + item.Permalink(),
-				"id": baseurl + item.Permalink(),
+				"content":   item.Html,
+				"url":       baseurl + item.Permalink(),
+				"id":        baseurl + item.Permalink(),
 				"published": item.Posted,
 			},
 		}
@@ -226,8 +226,8 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	owner := AccountForOwner()
 	data := map[string]interface{}{
-		"posts": posts,
-		"Title": owner.DisplayName,
+		"posts":     posts,
+		"Title":     owner.DisplayName,
 		"OwnerName": owner.DisplayName,
 	}
 	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
@@ -257,8 +257,8 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 
 	owner := AccountForOwner()
 	data := map[string]interface{}{
-		"post": post,
-		"Title": "a post • " + owner.DisplayName,
+		"post":      post,
+		"Title":     "a post • " + owner.DisplayName,
 		"OwnerName": owner.DisplayName,
 	}
 	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)

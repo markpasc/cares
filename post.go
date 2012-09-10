@@ -181,7 +181,7 @@ func PostsOnDay(day time.Time) ([]*Post, error) {
 	maxTime := time.Date(year, month, mday, 0, 0, 0, 0, time.UTC)
 
 	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE $1 <= posted AND posted < $2 AND deleted IS NULL ORDER BY posted DESC",
-			minTime, maxTime)
+		minTime, maxTime)
 	if err != nil {
 		return nil, err
 	}

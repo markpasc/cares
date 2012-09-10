@@ -16,7 +16,7 @@ type Import struct {
 	Identifier string `col:"identifier"`
 }
 
-func NewImport() (*Import) {
+func NewImport() *Import {
 	return &Import{0, 0, "", ""}
 }
 
