@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/base32"
 	"encoding/binary"
 	"encoding/xml"

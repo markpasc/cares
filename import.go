@@ -10,10 +10,10 @@ import (
 )
 
 type Import struct {
-	Id uint64
-	PostId uint64
-	Source string
-	Identifier string
+	Id         uint64 `col:"id"`
+	PostId     uint64 `col:"post"`
+	Source     string `col:"source"`
+	Identifier string `col:"identifier"`
 }
 
 func NewImport() (*Import) {
@@ -34,21 +34,8 @@ func ImportBySourceIdentifier(source, identifier string) (*Import, error) {
 	return i, nil
 }
 
-func (i *Import) Save() (err error) {
-	if i.Id == 0 {
-		row := db.QueryRow("INSERT INTO import (post, source, identifier) values ($1, $2, $3) RETURNING id",
-			i.PostId, i.Source, i.Identifier)
-		var id uint64
-		err = row.Scan(&id)
-		if err != nil {
-			return
-		}
-		i.Id = id
-	} else {
-		_, err = db.Exec("UPDATE import SET post = $2, source = $3, identifier = $4 WHERE id = $1",
-			i.Id, i.PostId, i.Source, i.Identifier)
-	}
-	return
+func (im *Import) Save() error {
+	return db.Save(im, "import")
 }
 
 func ImportThinkup(path string) {
