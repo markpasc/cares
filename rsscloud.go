@@ -101,11 +101,11 @@ func (r *RssCloudRequest) Unpack(doc *xml.XmlDocument) error {
 }
 
 type RssCloud struct {
-	Id              uint64
-	URL             string
-	Method          string
-	SubscribedUntil time.Time
-	Created         time.Time
+	Id              uint64    `col:"id"`
+	URL             string    `col:"url"`
+	Method          string    `col:"method"`
+	SubscribedUntil time.Time `col:"subscribedUntil"`
+	Created         time.Time `col:"created"`
 }
 
 func NewRssCloud() *RssCloud {
@@ -145,24 +145,7 @@ func (r *RssCloud) Notify(feedurl string) {
 }
 
 func (r *RssCloud) Save() error {
-	if r.Id == 0 {
-		row := db.QueryRow("INSERT INTO rsscloud (url, method, subscribedUntil, created) VALUES ($1, $2, $3, $4) RETURNING id",
-			r.URL, r.Method, r.SubscribedUntil, r.Created)
-
-		var id uint64
-		err := row.Scan(&id)
-		if err != nil {
-			return err
-		}
-		r.Id = id
-	} else {
-		_, err := db.Exec("UPDATE rsscloud SET url = $2, method = $3, subscribedUntil = $4, created = $5 WHERE id = $1",
-			r.Id, r.URL, r.Method, r.SubscribedUntil, r.Created)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return db.Save(r, "rsscloud")
 }
 
 func RssCloudByURL(url string) (*RssCloud, error) {

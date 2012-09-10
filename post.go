@@ -12,11 +12,11 @@ import (
 )
 
 type Post struct {
-	Id      uint64
-	Html    string
-	Posted  time.Time
-	Created time.Time
-	Deleted pq.NullTime
+	Id      uint64      `col:"id"`
+	Html    string      `col:"html"`
+	Posted  time.Time   `col:"posted"`
+	Created time.Time   `col:"created"`
+	Deleted pq.NullTime `col:"deleted"`
 }
 
 func NewPost() (p *Post) {
@@ -61,24 +61,11 @@ func (p *Post) Slug() string {
 	return strings.TrimRight(slug, "=")
 }
 
-func (p *Post) Save() (err error) {
-	if p.Id == 0 {
-		row := db.QueryRow("INSERT INTO post (html, posted, created, deleted) VALUES ($1, $2, $3, $4) RETURNING id",
-			p.Html, p.Posted, p.Created, p.Deleted)
-		var id uint64
-		err = row.Scan(&id)
-		if err != nil {
-			return err
-		}
-		p.Id = id
-	} else {
-		_, err = db.Exec("UPDATE post SET html = $2, posted = $3, created = $4, deleted = $5 WHERE id = $1",
-			p.Id, p.Html, p.Posted, p.Created, p.Deleted)
-	}
-	return nil
+func (p *Post) Save() error {
+	return db.Save(p, "post")
 }
 
-func (p *Post) MarkDeleted() (err error) {
+func (p *Post) MarkDeleted() error {
 	p.Deleted = pq.NullTime{time.Now().UTC(), true}
 	return p.Save()
 }
