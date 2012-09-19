@@ -31,71 +31,9 @@
     </div>
 {{/posts}}
 
+<script src="/static/editor.js"></script>
 <script>
     $(function () {
-        function resetPost() {
-            var $body = $('#newpost .body');
-            $body.blur();
-            $body.text('new post');
-
-            $('#newpost').hide();
-
-            $(document).bind('keypress.p', startPost);
-            return false;
-        }
-
-        function startPost() {
-            $('#newpost').show();
-
-            var $body = $('#newpost .body');
-            $body.focus();
-            window.getSelection().selectAllChildren($body.get(0));
-
-            $(document).unbind('keypress.p');
-            return false;
-        }
-
-        function sendPost() {
-            data = {
-                'html': $.trim($('#newpost .body').html())
-            };
-            if (!data['html'])
-                return false;
-
-            $.ajax({
-                url: '/post',
-                type: 'POST',
-                dataType: 'json',
-                data: data,
-                success: function (data, textStatus, xhr) {
-                    resetPost();
-
-                    // Add the new one.
-                    var $post = $('#newpost').clone();
-                    $post.attr('id', '');
-                    $post.find('.body').html(data['Html']);
-                    var $permalink = $post.find('.time a');
-                    var posted = new Date(Date.parse(data['Posted']));
-                    $permalink.attr('href', '/' + posted.getUTCFullYear() + '/' + data['Id']);
-                    var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %D %b %Y");
-                    $permalink.html(postedText);
-                    $('#newpost').after($post);
-                    $post.show();
-                },
-                error: function (xhr, textStatus, errorThrown) {
-                    alert('ERROR: ' + xhr.responseText);
-                }
-            });
-            return false;
-        }
-
-        function setUp() {
-            var $body = $('#newpost .body');
-            $body.bind('keydown.return', sendPost);
-            $body.bind('keydown.esc', resetPost);
-
-            $(document).bind('keypress.p', startPost);
-        }
-        setUp();
+        $('#newpost').editor();
     });
 </script>
