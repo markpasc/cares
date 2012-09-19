@@ -5,14 +5,19 @@
     </h1>
 </div>
 
-<div id="newpost" class="post row-fluid hide">
-    <div class="span8 offset1">
-        <p>
-            <span class="body" contenteditable="true">new post</span>
-            <span class="time">
-                <a href="/">now</a>
-            </span>
-        </p>
+<div id="editor">
+    <div class="post row-fluid hide">
+        <div class="span8 offset1">
+            <p>
+                <span class="body" contenteditable="true">new post</span>
+                <span class="time">
+                    <a href="/">now</a>
+                </span>
+            </p>
+        </div>
+    </div>
+    <div class="editor-panels">
+        <div class="link-editor" contenteditable="true"></div>
     </div>
 </div>
 
@@ -34,6 +39,6 @@
 <script src="/static/editor.js"></script>
 <script>
     $(function () {
-        $('#newpost').editor();
+        $('#editor').editor();
     });
 </script>
