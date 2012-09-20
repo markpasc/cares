@@ -87,11 +87,22 @@ $(function() {
 		};
 
 		Editor.prototype.makeLink = function () {
-			// TODO: if no text is selected, insert and select some ("link"?)
-			// TODO: if the cursor is inside a link, just edit the existing link
+			// Edit the link the selection is in.
+			var $selection = $(window.getSelection().anchorNode);
+			var $selectedLinks = $selection.parents().andSelf().filter('a');
+			if ($selectedLinks.size()) {
+				this.activateLinkEditor($selectedLinks.first());
+				return;
+			}
+
+			// Make a link.
+			var collapsed = window.getSelection().isCollapsed;
 			document.execCommand('createLink', false, ' ');
 			var $link = $(window.getSelection().anchorNode).parent();
 			$link.attr('href', '');
+			if (collapsed) {
+				$link.text("link");
+			}
 			this.activateLinkEditor($link);
 		};
 
