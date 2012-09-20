@@ -11,7 +11,7 @@ $(function() {
 		}
 
 		Editor.prototype.start = function () {
-			this.$el.find('.post').show();
+			this.$el.show();
 
 			var $body = this.$el.find('.body');
 			$body.focus();
@@ -63,7 +63,7 @@ $(function() {
 			$body.blur();
 			$body.text('new post');
 
-			this.$el.find('.post').hide();
+			this.$el.hide();
 
 			$(document).bind('keypress.p', this.start.bind(this));
 			return false;
