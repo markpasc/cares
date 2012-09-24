@@ -153,6 +153,40 @@ func archive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func atom(w http.ResponseWriter, r *http.Request) {
+	posts, err := RecentPosts(10)
+	if err != nil {
+		logr.Errln("Error loading posts for Atom feed:", err.Error())
+		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
+		return
+	}
+
+	owner := AccountForOwner()
+
+	// TODO: somehow determine if we're on HTTPS or no?
+	baseurlUrl := url.URL{"http", "", nil, r.Host, "/", "", ""}
+	baseurl := strings.TrimRight(baseurlUrl.String(), "/")
+
+	var lastPost *Post = nil
+	if len(posts) > 0 {
+		lastPost = posts[0]
+	}
+
+	titleFormat := "%s"
+	data := map[string]interface{}{
+		"Posts":     posts,
+		"OwnerName": owner.DisplayName,
+		"Title":     fmt.Sprintf(titleFormat, owner.DisplayName),
+		"baseurl":   baseurl,
+		"LastPost":  lastPost,
+	}
+	logr.Debugln("Rendering Atom with baseurl of", baseurl)
+	xml := mustache.RenderFile("html/atom.xml", data)
+	w.Header().Set("Content-Type", "application/atom+xml")
+	w.Write([]byte(xml))
+	return
+}
+
 func activity(w http.ResponseWriter, r *http.Request) {
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurlUrl := url.URL{"http", "", nil, r.Host, "/", "", ""}
@@ -316,6 +350,7 @@ func ServeWeb(port int) {
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/rssCloud", rssCloud)
+	http.HandleFunc("/atom", atom)
 	http.HandleFunc("/post", post)
 	http.HandleFunc("/activity", activity)
 	http.HandleFunc("/archive/", archive)

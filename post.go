@@ -48,6 +48,10 @@ func (p *Post) PostedRSS() string {
 	return p.Posted.UTC().Format(time.RFC1123)
 }
 
+func (p *Post) PostedRFC3339() string {
+	return p.Posted.UTC().Format(time.RFC3339)
+}
+
 func (p *Post) HtmlXML() string {
 	var buf bytes.Buffer
 	xml.Escape(&buf, []byte(p.Html))
