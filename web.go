@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hoisie/mustache"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -303,4 +304,24 @@ func static(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	logr.Debugln("Serving static file", path)
 	http.ServeFile(w, r, path)
+}
+
+func ServeWeb(port int) {
+	err := LoadAccountForOwner()
+	if err != nil {
+		logr.Errln("Error loading site owner:", err.Error())
+		return
+	}
+
+	http.HandleFunc("/static/", static)
+	http.HandleFunc("/rss", rss)
+	http.HandleFunc("/rssCloud", rssCloud)
+	http.HandleFunc("/post", post)
+	http.HandleFunc("/activity", activity)
+	http.HandleFunc("/archive/", archive)
+	http.HandleFunc("/post/", permalink)
+	http.HandleFunc("/", index)
+
+	logr.Debugln("Ohai web servin'")
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
