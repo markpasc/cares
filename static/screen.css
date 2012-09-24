@@ -42,10 +42,16 @@ p {
     outline: none;
 }
 
-.post .time {
-    font-size: 1em;
+.post .body a {
+    text-decoration: underline;
 }
 
+.post .time {
+    font-size: 1em;
+    white-space: nowrap;
+}
+
+/* editor */
 #editor .link-editor {
     display: inline-block;
     background: #66c;
