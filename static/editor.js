@@ -42,13 +42,16 @@ $(function() {
 					// Add the new one.
 					var $oldpost = editor.$el.find('.post');
 					var $post = $oldpost.clone();
-					$post.find('.body').html(data['Html']);
+					var $body = $post.find('.body');
+					$body.find('a').die();
+					$body.attr('contenteditable', 'false');
+					$body.html(data['Html']);
 					var $permalink = $post.find('.time a');
 					var posted = new Date(Date.parse(data['Posted']));
 					$permalink.attr('href', '/' + posted.getUTCFullYear() + '/' + data['Id']);
 					var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %D %b %Y");
 					$permalink.html(postedText);
-					$oldpost.after($post);
+					editor.$el.after($post);
 					$post.show();
 				},
 				error: function (xhr, textStatus, errorThrown) {
