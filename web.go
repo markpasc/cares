@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hoisie/mustache"
+	"github.com/moovweb/gokogiri/html"
+	"github.com/moovweb/gokogiri/xml"
 	"log"
 	"net"
 	"net/http"
@@ -300,6 +302,38 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
+func removeNonAnchorElements(node xml.Node) {
+	var next xml.Node
+	for n := node.FirstChild(); n != nil; n = next {
+		next = n.NextSibling()
+
+		if n.NodeType() == xml.XML_ELEMENT_NODE {
+			removeNonAnchorElements(n)
+
+			if strings.ToLower(n.Name()) != "a" {
+				var chNext xml.Node
+				for ch := n.FirstChild(); ch != nil; ch = chNext {
+					chNext = ch.NextSibling()
+					ch.Unlink()
+					n.InsertBefore(ch)
+				}
+				n.Remove()
+			}
+		}
+	}
+}
+
+func CleanHTML(inhtml string) (string, error) {
+	frag, err := html.ParseFragment([]byte(inhtml), html.DefaultEncodingBytes, []byte{},
+		html.DefaultParseOption, html.DefaultEncodingBytes)
+	if err != nil {
+		return "", err
+	}
+
+	removeNonAnchorElements(frag)
+	return frag.String(), nil
+}
+
 func post(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -314,15 +348,22 @@ func post(w http.ResponseWriter, r *http.Request) {
 	html := r.FormValue("html")
 	if html == "" {
 		http.Error(w, "html value is required", http.StatusBadRequest)
+		return
+	}
+	html, err := CleanHTML(html)
+	if err != nil {
+		http.Error(w, "error parsing HTML: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	post.Html = html
-	err := post.Save()
+	err = post.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// TODO: use proper scheme
 	go NotifyRssCloud(fmt.Sprintf("http://%s/rss", r.Host))
 
 	ret, err := json.Marshal(post)
