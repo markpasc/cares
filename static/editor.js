@@ -77,6 +77,11 @@ $(function() {
 			$body.bind('keydown.return', this.submit.bind(this));
 			$body.bind('keydown.esc', this.reset.bind(this));
 			$body.bind('keydown.ctrl_l', this.makeLink.bind(this));
+			$body.bind('paste', (function (e) {
+				// Post the method call with a timeout so it happens *after*
+				// the paste event, when the tree to clean is in the DOM.
+				setTimeout(this.cleanBody.bind(this), 0, e);
+			}).bind(this));
 
 			$(document).bind('keypress.p', this.start.bind(this));
 
@@ -147,6 +152,15 @@ $(function() {
 			$linkeditor.unbind('keyup');
 			$linkeditor.unbind('keydown');
 			$linkeditor.hide();
+		};
+
+		Editor.prototype.cleanBody = function (e) {
+			var $body = this.$el.find('span.body');
+			$body.find('br').remove();
+			$body.find('*').not('a').replaceWith(function () {
+				return $(this).contents();
+			});
+			$body.get(0).normalize();
 		};
 
 		$.fn.editor = function (options) {
