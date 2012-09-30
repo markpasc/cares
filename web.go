@@ -264,10 +264,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 	owner := AccountForOwner()
 	data := map[string]interface{}{
 		"posts":     posts,
-		"Title":     owner.DisplayName,
 		"OwnerName": owner.DisplayName,
 	}
-	html := mustache.RenderFileInLayout("html/index.html", "html/base.html", data)
+	html := mustache.RenderFile("html/index.html", data)
 	w.Write([]byte(html))
 }
 
@@ -295,10 +294,9 @@ func permalink(w http.ResponseWriter, r *http.Request) {
 	owner := AccountForOwner()
 	data := map[string]interface{}{
 		"post":      post,
-		"Title":     "a post • " + owner.DisplayName,
 		"OwnerName": owner.DisplayName,
 	}
-	html := mustache.RenderFileInLayout("html/permalink.html", "html/base.html", data)
+	html := mustache.RenderFile("html/permalink.html", data)
 	w.Write([]byte(html))
 }
 
