@@ -147,21 +147,21 @@ func makeTweetMutations(data map[string]interface{}) MutationList {
 }
 
 func mutateTweetText(data map[string]interface{}) string {
-	text := data["text"].(string)
 	mutations := makeTweetMutations(data)
 	sort.Sort(mutations)
 
 	var buf bytes.Buffer
+	text := []rune(data["text"].(string))
 	i := 0
 	for _, mutation := range mutations {
 		if i < mutation.Start {
-			buf.WriteString(text[i:mutation.Start])
+			buf.WriteString(string(text[i:mutation.Start]))
 		}
 		buf.WriteString(mutation.Html)
 		i = mutation.End
 	}
 	// Include any trailing plain text.
-	buf.WriteString(text[i:])
+	buf.WriteString(string(text[i:]))
 
 	return buf.String()
 }
