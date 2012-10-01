@@ -112,9 +112,9 @@ func makeTweetMutations(data map[string]interface{}) MutationList {
 			if url == "" {
 				url = ent["url"].(string)
 			}
-			start, end := indicesForEntity(ent)
-			linkText := text[start:end]
+			linkText := ent["display_url"].(string)
 			html := fmt.Sprintf(`<a href="%s">%s</a>`, url, linkText)
+			start, end := indicesForEntity(ent)
 			mutations.PushBack(Mutation{start, end, html})
 		}
 	}
