@@ -198,14 +198,17 @@ func ImportJson(path string) {
 			return
 		}
 
+		tweetId := data["id_str"].(string)
+
 		if replyId, ok := data["in_reply_to_status_id_str"]; ok && replyId != nil && replyId.(string) != "" {
+			logr.Debugln("Tweet", tweetId, "is a reply, skipping")
 			continue
 		}
-		if retweeted, ok := data["retweeted"]; ok && retweeted != nil && retweeted.(bool) {
+		if retweeted, ok := data["retweeted_status"]; ok && retweeted != nil {
+			logr.Debugln("Tweet", tweetId, "is a repeat, skipping")
 			continue
 		}
 
-		tweetId := data["id_str"].(string)
 		im, err := ImportBySourceIdentifier("twitter", tweetId)
 		if err == sql.ErrNoRows {
 			im = NewImport()
@@ -252,7 +255,6 @@ func ImportJson(path string) {
 			return
 		}
 
-		logr.Debugln("Imported post (twitter,", im.Identifier, ")")
 		count++
 	}
 
