@@ -249,6 +249,30 @@ func activity(w http.ResponseWriter, r *http.Request) {
 	w.Write(streamBytes)
 }
 
+func stream(w http.ResponseWriter, r *http.Request) {
+	before := r.FormValue("before")
+	beforeTime, err := time.Parse(time.RFC3339, before)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid timestamp %s", before), http.StatusBadRequest)
+		return
+	}
+	posts, err := PostsBefore(beforeTime, 20)
+	if err != nil {
+		logr.Errln("Error finding posts older than", before, ":", err.Error())
+		http.Error(w, "error finding posts", http.StatusInternalServerError)
+		return
+	}
+
+	ret, err := json.Marshal(posts)
+	if err != nil {
+		logr.Errln("Error serializing posts older than", before, ":", err.Error())
+		http.Error(w, "error serializing requested posts", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ret)
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Path) > 1 {
 		// Actually some other unhandled URL, so 404.
@@ -265,6 +289,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"posts":     posts,
 		"OwnerName": owner.DisplayName,
+	}
+	if len(posts) > 0 {
+		data["LastPost"] = posts[len(posts)-1]
 	}
 	html := mustache.RenderFile("html/index.html", data)
 	w.Write([]byte(html))
@@ -392,6 +419,7 @@ func ServeWeb(port int) {
 	http.HandleFunc("/atom", atom)
 	http.HandleFunc("/post", post)
 	http.HandleFunc("/activity", activity)
+	http.HandleFunc("/stream", stream)
 	http.HandleFunc("/archive/", archive)
 	http.HandleFunc("/post/", permalink)
 	http.HandleFunc("/", index)

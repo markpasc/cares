@@ -31,25 +31,36 @@
     </div>
 </div>
 
-{{#posts}}
-    <div class="post row-fluid">
-        <div class="span8 offset1">
-            <p>
-                <span class="body">
-                    {{{Html}}}
-                </span>
-                <span class="time">
-                    <a href="{{Permalink}}">{{PostedTime}} <small>{{PostedAM}}</small> {{PostedDate}}</a>
-                </span>
-            </p>
+<div id="posts">
+    {{#posts}}
+        <div id="post-{{Id}}" class="post row-fluid">
+            <div class="span8 offset1">
+                <p>
+                    <span class="body">
+                        {{{Html}}}
+                    </span>
+                    <span class="time">
+                        <a href="{{Permalink}}">{{PostedTime}} <small>{{PostedAM}}</small> {{PostedDate}}</a>
+                    </span>
+                </p>
+            </div>
         </div>
-    </div>
-{{/posts}}
+    {{/posts}}
+</div>
+
+<div id="nav">
+    <div class="load-more"><button>More posts</button></div>
+    <div class="loading hide">Loading...</div>
+</div>
 
 <script src="/static/editor.js"></script>
+<script src="/static/loadmore.js"></script>
 <script>
     $(function () {
         $('#editor').editor();
+        {{#LastPost}}
+        $('#nav').loadMore("{{PostedRFC3339}}");
+        {{/LastPost}}
     });
 </script>
 

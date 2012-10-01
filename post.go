@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/base32"
 	"encoding/binary"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"github.com/bmizerany/pq"
@@ -63,6 +65,17 @@ func (p *Post) Slug() string {
 	n := binary.PutUvarint(binSlug[0:binary.MaxVarintLen64], uint64(p.Id))
 	slug := base32.StdEncoding.EncodeToString(binSlug[:n])
 	return strings.TrimRight(slug, "=")
+}
+
+func (p *Post) MarshalJSON() ([]byte, error) {
+	data := map[string]interface{}{
+		"Id":        p.Id,
+		"Html":      p.Html,
+		"Permalink": p.Permalink(),
+		"Created":   p.Created,
+		"Posted":    p.Posted,
+	}
+	return json.Marshal(data)
 }
 
 func (p *Post) Save() error {
@@ -130,19 +143,16 @@ func FirstPost() (*Post, error) {
 	return post, nil
 }
 
-func RecentPosts(count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
-	if err != nil {
-		logr.Errln("Error querying database for", count, "posts:", err.Error())
-		return nil, err
-	}
+func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
+	var err error
 
-	logr.Debugln("Deserializing all the returned posts")
 	posts := make([]*Post, 0, count)
 	var id uint64
 	var html string
 	var posted time.Time
 	var created time.Time
+	undeleted := pq.NullTime{time.Unix(0, 0), false}
+
 	i := 0
 	for rows.Next() {
 		err = rows.Scan(&id, &html, &posted, &created)
@@ -151,8 +161,13 @@ func RecentPosts(count int) ([]*Post, error) {
 			return nil, err
 		}
 
+		if cap(posts) < i+1 {
+			newPosts := make([]*Post, cap(posts), 2*cap(posts))
+			copy(posts, newPosts)
+			posts = newPosts
+		}
 		posts = posts[0 : i+1]
-		posts[i] = &Post{id, html, posted, created, pq.NullTime{time.Unix(0, 0), false}}
+		posts[i] = &Post{id, html, posted, created, undeleted}
 		i++
 	}
 
@@ -163,6 +178,27 @@ func RecentPosts(count int) ([]*Post, error) {
 	}
 
 	return posts, nil
+}
+
+func RecentPosts(count int) ([]*Post, error) {
+	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
+	if err != nil {
+		logr.Errln("Error querying database for", count, "posts:", err.Error())
+		return nil, err
+	}
+
+	logr.Debugln("Deserializing all the returned posts")
+	return postsForRows(rows, count)
+}
+
+func PostsBefore(before time.Time, count int) ([]*Post, error) {
+	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
+		before, count)
+	if err != nil {
+		return nil, err
+	}
+
+	return postsForRows(rows, count)
 }
 
 func PostsOnDay(day time.Time) ([]*Post, error) {
@@ -177,29 +213,5 @@ func PostsOnDay(day time.Time) ([]*Post, error) {
 		return nil, err
 	}
 
-	posts := make([]*Post, 0, 10)
-	var id uint64
-	var html string
-	var posted time.Time
-	var created time.Time
-	undeleted := pq.NullTime{time.Unix(0, 0), false}
-	i := 0
-	for rows.Next() {
-		err = rows.Scan(&id, &html, &posted, &created)
-		if err != nil {
-			return nil, err
-		}
-		post := &Post{id, html, posted, created, undeleted}
-
-		if cap(posts) < i+1 {
-			newPosts := make([]*Post, cap(posts), 2*cap(posts))
-			copy(posts, newPosts)
-			posts = newPosts
-		}
-		posts = posts[0 : i+1]
-		posts[i] = post
-		i++
-	}
-
-	return posts, nil
+	return postsForRows(rows, 10)
 }

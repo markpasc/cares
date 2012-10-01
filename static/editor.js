@@ -45,10 +45,10 @@ $(function() {
 					var $body = $post.find('.body');
 					$body.find('a').die();
 					$body.attr('contenteditable', 'false');
-					$body.html(data['Html']);
+					$body.html(data.Html);
 					var $permalink = $post.find('.time a');
-					var posted = new Date(Date.parse(data['Posted']));
-					$permalink.attr('href', '/' + posted.getUTCFullYear() + '/' + data['Id']);
+					$permalink.attr('href', data.Permalink);
+					var posted = new Date(Date.parse(data.Posted));
 					var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %D %b %Y");
 					$permalink.html(postedText);
 					editor.$el.after($post);
