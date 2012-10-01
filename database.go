@@ -65,21 +65,22 @@ func (d *Database) Save(r Record, table string) (err error) {
 
 		var id uint64
 		err = row.Scan(&id)
-		if err != nil {
-			return err
+		if err == nil {
+			idValue.SetUint(id)
 		}
-
-		idValue.SetUint(id)
 	} else {
-		sqlText := fmt.Sprintf("UPDATE %s SET %s = %s WHERE id = $%d",
+		sqlText := fmt.Sprintf("UPDATE %s SET (%s) = (%s) WHERE id = $%d",
 			table, colNameSet, placeholderSet, len(colNames)+1)
 		lasty := len(colValues)
 		colValues = colValues[0 : lasty+1]
 		colValues[lasty] = idValue.Uint()
 		//logr.Debugln("SQL:", sqlText, "←", colValues)
-		_, err = db.Query(sqlText, colValues...)
+		// Use Exec instead of Query here, so _ isn't a Rows holding a
+		// database connection private until it's closed or fully read,
+		// which of course it won't be since we don't save the Rows. Oops.
+		_, err = db.Exec(sqlText, colValues...)
 	}
-	return nil
+	return
 }
 
 var db *Database
