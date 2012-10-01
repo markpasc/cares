@@ -97,7 +97,7 @@ func WriteRssForPosts(w http.ResponseWriter, r *http.Request, posts []*Post, tit
 }
 
 func rss(w http.ResponseWriter, r *http.Request) {
-	posts, err := RecentPosts(10)
+	posts, err := RecentPosts(20)
 	if err != nil {
 		logr.Errln("Error loading posts for RSS feed:", err.Error())
 		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
@@ -156,7 +156,7 @@ func archive(w http.ResponseWriter, r *http.Request) {
 }
 
 func atom(w http.ResponseWriter, r *http.Request) {
-	posts, err := RecentPosts(10)
+	posts, err := RecentPosts(20)
 	if err != nil {
 		logr.Errln("Error loading posts for Atom feed:", err.Error())
 		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
@@ -213,7 +213,7 @@ func activity(w http.ResponseWriter, r *http.Request) {
 		"displayName": owner.DisplayName,
 	}
 
-	items, err := RecentPosts(10)
+	items, err := RecentPosts(20)
 	if err != nil {
 		logr.Errln("error finding recent posts for activity stream:", err.Error())
 		http.Error(w, "error finding recent activity", http.StatusInternalServerError)
@@ -256,7 +256,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := RecentPosts(10)
+	posts, err := RecentPosts(20)
 	if err != nil {
 		logr.Errln("Error loading recent posts for home page:", err.Error())
 	}

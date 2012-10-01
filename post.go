@@ -131,7 +131,7 @@ func FirstPost() (*Post, error) {
 }
 
 func RecentPosts(count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT 10")
+	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
 	if err != nil {
 		logr.Errln("Error querying database for", count, "posts:", err.Error())
 		return nil, err
