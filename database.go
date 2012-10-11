@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	SCHEMA_VERSION = 2
+	SCHEMA_VERSION = 3
 )
 
 type Record interface {

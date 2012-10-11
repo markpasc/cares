@@ -204,10 +204,6 @@ func ImportJson(path string) {
 			logr.Debugln("Tweet", tweetId, "is a reply, skipping")
 			continue
 		}
-		if retweeted, ok := data["retweeted_status"]; ok && retweeted != nil {
-			logr.Debugln("Tweet", tweetId, "is a repeat, skipping")
-			continue
-		}
 
 		im, err := ImportBySourceIdentifier("twitter", tweetId)
 		if err == sql.ErrNoRows {
@@ -237,7 +233,50 @@ func ImportJson(path string) {
 			return
 		}
 
-		post.Html = mutateTweetText(data)
+		tweetData := data
+		if origTweet, ok := data["retweeted_status"]; ok && origTweet != nil {
+			tweetData = origTweet.(map[string]interface{})
+
+			userData := tweetData["user"].(map[string]interface{})
+			authorId := userData["id_str"].(string)
+			authorImp, err := ImportBySourceIdentifier("twitterAuthor", authorId)
+			if err == sql.ErrNoRows {
+				authorImp = NewImport()
+				authorImp.Source = "twitterAuthor"
+				authorImp.Identifier = authorId
+			} else if err != nil {
+				logr.Errln("Error searching for existing imported author (twitterAuthor,", authorId, "):", err.Error())
+				return
+			}
+
+			var author *Author
+			if authorImp.PostId != 0 {
+				author, err = AuthorById(authorImp.PostId)
+				if err != nil {
+					logr.Errln("Error loading already-import author", im.PostId, "for twitter author", im.Identifier, ":", err.Error())
+					return
+				}
+			} else {
+				author = NewAuthor()
+			}
+
+			author.Name = userData["screen_name"].(string)
+			author.Url = fmt.Sprintf("https://twitter.com/%s", author.Name)
+			author.Save()
+
+			authorImp.PostId = author.Id
+			authorImp.Save()
+
+			post.AuthorId = sql.NullInt64{int64(author.Id), true}
+
+			// Imported posts get their own new permalinks, but repeats should
+			// still refer to the original.
+			tweetId := tweetData["id_str"].(string)
+			origUrl := fmt.Sprintf("https://twitter.com/%s/status/%s", author.Name, tweetId)
+			post.Url = sql.NullString{origUrl, true}
+		}
+
+		post.Html = mutateTweetText(tweetData)
 
 		// TODO: store the source?
 		// TODO: store the geoplace

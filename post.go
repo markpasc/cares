@@ -13,20 +13,55 @@ import (
 	"time"
 )
 
+type Author struct {
+	Id   uint64 `col:"id"`
+	Name string `col:"name"`
+	Url  string `col:"url"`
+}
+
+func NewAuthor() (a *Author) {
+	a = &Author{0, "", ""}
+	return
+}
+
+func (a *Author) Save() error {
+	return db.Save(a, "author")
+}
+
+func AuthorById(id uint64) (*Author, error) {
+	row := db.QueryRow("SELECT name, url FROM author WHERE id = $1", id)
+
+	var name string
+	var url string
+	err := row.Scan(&name, &url)
+	if err != nil {
+		logr.Errln("Error querying database for author #", id, ":", err.Error())
+		return nil, err
+	}
+
+	author := &Author{id, name, url}
+	return author, nil
+}
+
 type Post struct {
-	Id      uint64      `col:"id"`
-	Html    string      `col:"html"`
-	Posted  time.Time   `col:"posted"`
-	Created time.Time   `col:"created"`
-	Deleted pq.NullTime `col:"deleted"`
+	Id       uint64         `col:"id"`
+	AuthorId sql.NullInt64  `col:"author"`
+	Url      sql.NullString `col:"url"`
+	Html     string         `col:"html"`
+	Posted   time.Time      `col:"posted"`
+	Created  time.Time      `col:"created"`
+	Deleted  pq.NullTime    `col:"deleted"`
 }
 
 func NewPost() (p *Post) {
-	p = &Post{0, "", time.Now(), time.Now().UTC(), pq.NullTime{time.Unix(0, 0), false}}
+	p = &Post{0, sql.NullInt64{0, false}, sql.NullString{"", false}, "", time.Now(), time.Now().UTC(), pq.NullTime{time.Unix(0, 0), false}}
 	return
 }
 
 func (p *Post) Permalink() string {
+	if p.Url.Valid {
+		return p.Url.String
+	}
 	return fmt.Sprintf("/post/%s", p.Slug())
 }
 
@@ -60,6 +95,13 @@ func (p *Post) HtmlXML() string {
 	return buf.String()
 }
 
+func (p *Post) Author() (*Author, error) {
+	if !p.AuthorId.Valid {
+		return nil, nil
+	}
+	return AuthorById(uint64(p.AuthorId.Int64))
+}
+
 func (p *Post) Slug() string {
 	var binSlug [binary.MaxVarintLen64]byte
 	n := binary.PutUvarint(binSlug[0:binary.MaxVarintLen64], uint64(p.Id))
@@ -68,9 +110,21 @@ func (p *Post) Slug() string {
 }
 
 func (p *Post) MarshalJSON() ([]byte, error) {
+	// TODO: put in the author and let the javascript client sort it out
+	html := p.Html
+	if p.AuthorId.Valid {
+		author, err := p.Author()
+		if err != nil {
+			logr.Errln("Error loading author", p.AuthorId, "to marshal post", p.Id, ":", err.Error())
+			// but continue
+		} else {
+			html = fmt.Sprintf(`<b><a href="%s">%s</a></b> %s`, author.Url, author.Name, html)
+		}
+	}
+
 	data := map[string]interface{}{
 		"Id":        p.Id,
-		"Html":      p.Html,
+		"Html":      html,
 		"Permalink": p.Permalink(),
 		"Created":   p.Created,
 		"Posted":    p.Posted,
@@ -88,19 +142,21 @@ func (p *Post) MarkDeleted() error {
 }
 
 func PostById(id uint64) (*Post, error) {
-	row := db.QueryRow("SELECT html, posted, created FROM post WHERE id = $1 AND deleted IS NULL", id)
+	row := db.QueryRow("SELECT author, url, html, posted, created FROM post WHERE id = $1 AND deleted IS NULL", id)
 
+	var author sql.NullInt64
+	var url sql.NullString
 	var html string
 	var posted time.Time
 	var created time.Time
-	err := row.Scan(&html, &posted, &created)
+	err := row.Scan(&author, &url, &html, &posted, &created)
 	if err != nil {
 		logr.Errln("Error querying database for post #", id, ":", err.Error())
 		return nil, err
 	}
 
 	undeleted := pq.NullTime{time.Unix(0, 0), false}
-	post := &Post{id, html, posted, created, undeleted}
+	post := &Post{id, author, url, html, posted, created, undeleted}
 	return post, nil
 }
 
@@ -127,19 +183,21 @@ func PostBySlug(slug string) (*Post, error) {
 
 func FirstPost() (*Post, error) {
 	logr.Debugln("Finding first post")
-	row := db.QueryRow("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted ASC LIMIT 1")
+	row := db.QueryRow("SELECT id, author, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted ASC LIMIT 1")
 
 	var id uint64
+	var author sql.NullInt64
+	var url sql.NullString
 	var html string
 	var posted time.Time
 	var created time.Time
-	err := row.Scan(&id, &html, &posted, &created)
+	err := row.Scan(&id, &author, &url, &html, &posted, &created)
 	if err != nil {
 		return nil, err
 	}
 
 	undeleted := pq.NullTime{time.Unix(0, 0), false}
-	post := &Post{id, html, posted, created, undeleted}
+	post := &Post{id, author, url, html, posted, created, undeleted}
 	return post, nil
 }
 
@@ -148,6 +206,8 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 
 	posts := make([]*Post, 0, count)
 	var id uint64
+	var author sql.NullInt64
+	var url sql.NullString
 	var html string
 	var posted time.Time
 	var created time.Time
@@ -155,7 +215,7 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 
 	i := 0
 	for rows.Next() {
-		err = rows.Scan(&id, &html, &posted, &created)
+		err = rows.Scan(&id, &author, &url, &html, &posted, &created)
 		if err != nil {
 			logr.Errln("Error scanning row", i, ":", err.Error())
 			return nil, err
@@ -167,7 +227,7 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 			posts = newPosts
 		}
 		posts = posts[0 : i+1]
-		posts[i] = &Post{id, html, posted, created, undeleted}
+		posts[i] = &Post{id, author, url, html, posted, created, undeleted}
 		i++
 	}
 
@@ -181,7 +241,7 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 }
 
 func RecentPosts(count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
+	rows, err := db.Query("SELECT id, author, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
 	if err != nil {
 		logr.Errln("Error querying database for", count, "posts:", err.Error())
 		return nil, err
@@ -192,7 +252,7 @@ func RecentPosts(count int) ([]*Post, error) {
 }
 
 func PostsBefore(before time.Time, count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
+	rows, err := db.Query("SELECT id, author, url, html, posted, created FROM post WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
 		before, count)
 	if err != nil {
 		return nil, err
@@ -207,7 +267,7 @@ func PostsOnDay(day time.Time) ([]*Post, error) {
 	year, month, mday = day.AddDate(0, 0, 1).Date()
 	maxTime := time.Date(year, month, mday, 0, 0, 0, 0, time.UTC)
 
-	rows, err := db.Query("SELECT id, html, posted, created FROM post WHERE $1 <= posted AND posted < $2 AND deleted IS NULL ORDER BY posted DESC",
+	rows, err := db.Query("SELECT id, author, url, html, posted, created FROM post WHERE $1 <= posted AND posted < $2 AND deleted IS NULL ORDER BY posted DESC",
 		minTime, maxTime)
 	if err != nil {
 		return nil, err
