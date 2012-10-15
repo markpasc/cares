@@ -24,16 +24,12 @@ $(function() {
                     $.each(data, function(i, val) {
                         oldestItemDate = val.Posted;
 
-                        var $post = $urpost.clone();
-                        $post.attr('id', 'post-' + val.Id);
-                        $post.find('.body').html(val.Html);
                         var posted = new Date(Date.parse(val.Posted));
-                        var postedText = $.relatizeDate.strftime(posted, "%i:%M <small>%p</small> %D %b %Y");
-                        var $permalink = $post.find('.time a');
-                        $permalink.html(postedText);
-                        $permalink.attr('href', val.Permalink);
+                        val.PostedTime = $.relatizeDate.strftime(posted, "%i:%M");
+                        val.PostedAM = $.relatizeDate.strftime(posted, "%p");
+                        val.PostedDate = $.relatizeDate.strftime(posted, "%D %b %Y");
 
-                        $posts.append($post);
+                        $posts.append($('#post-template').mustache(val));
                     });
 
                     $nav.find('.loading').hide();

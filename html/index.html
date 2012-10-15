@@ -31,6 +31,26 @@
     </div>
 </div>
 
+<script id="post-template" type="text/x-mustache">
+    {{=<< >>=}}
+    <div id="post-{{Id}}" class="post row-fluid">
+        <div class="span8 offset1">
+            <p>
+                {{#Author}}
+                    <strong><a href="{{Url}}">{{Name}}</a></strong>
+                {{/Author}}
+                <span class="body">
+                    {{{Html}}}
+                </span>
+                <span class="time">
+                    <a href="{{Permalink}}">{{PostedTime}} <small>{{PostedAM}}</small> {{PostedDate}}</a>
+                </span>
+            </p>
+        </div>
+    </div>
+    <<={{ }}=>>
+</script>
+
 <div id="posts">
     {{#posts}}
         <div id="post-{{Id}}" class="post row-fluid">

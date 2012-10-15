@@ -110,24 +110,24 @@ func (p *Post) Slug() string {
 }
 
 func (p *Post) MarshalJSON() ([]byte, error) {
-	// TODO: put in the author and let the javascript client sort it out
-	html := p.Html
+	data := map[string]interface{}{
+		"Id":        p.Id,
+		"Html":      p.Html,
+		"Permalink": p.Permalink(),
+		"Created":   p.Created,
+		"Posted":    p.Posted,
+	}
 	if p.AuthorId.Valid {
 		author, err := p.Author()
 		if err != nil {
 			logr.Errln("Error loading author", p.AuthorId, "to marshal post", p.Id, ":", err.Error())
 			// but continue
 		} else {
-			html = fmt.Sprintf(`<b><a href="%s">%s</a></b> %s`, author.Url, author.Name, html)
+			data["Author"] = map[string]interface{}{
+				"Name": author.Name,
+				"Url":  author.Url,
+			}
 		}
-	}
-
-	data := map[string]interface{}{
-		"Id":        p.Id,
-		"Html":      html,
-		"Permalink": p.Permalink(),
-		"Created":   p.Created,
-		"Posted":    p.Posted,
 	}
 	return json.Marshal(data)
 }
