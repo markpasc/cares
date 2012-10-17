@@ -370,6 +370,9 @@ func post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := NewPost()
+	// TODO: use the site owner's author id
+	post.AuthorId = 1
+
 	html := r.FormValue("html")
 	if html == "" {
 		http.Error(w, "html value is required", http.StatusBadRequest)
@@ -380,11 +383,24 @@ func post(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error parsing HTML: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	post.Html = html
+
 	err = post.Save()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "error saving post to database", http.StatusInternalServerError)
+		logr.Errln("Error saving new Post:", err.Error())
+		return
+	}
+
+	ws := NewWritestream()
+	// TODO: use owner's ID
+	ws.Account = 1
+	ws.Post = post.Id
+	ws.Posted = post.Posted
+	err = ws.Save()
+	if err != nil {
+		http.Error(w, "error saving post to database", http.StatusInternalServerError)
+		logr.Errln("Error saving Writestream for new post:", err.Error())
 		return
 	}
 

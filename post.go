@@ -13,6 +13,22 @@ import (
 	"time"
 )
 
+type Writestream struct {
+	Id      uint64    `col:"id"`
+	Account uint64    `col:"account"`
+	Post    uint64    `col:"post"`
+	Posted  time.Time `col:"posted"`
+}
+
+func NewWritestream() (w *Writestream) {
+	w = &Writestream{0, 0, 0, time.Now()}
+	return
+}
+
+func (w *Writestream) Save() error {
+	return db.Save(w, "writestream")
+}
+
 type Author struct {
 	Id   uint64 `col:"id"`
 	Name string `col:"name"`
@@ -45,7 +61,7 @@ func AuthorById(id uint64) (*Author, error) {
 
 type Post struct {
 	Id       uint64         `col:"id"`
-	AuthorId sql.NullInt64  `col:"author"`
+	AuthorId uint64         `col:"author"`
 	Url      sql.NullString `col:"url"`
 	Html     string         `col:"html"`
 	Posted   time.Time      `col:"posted"`
@@ -54,7 +70,7 @@ type Post struct {
 }
 
 func NewPost() (p *Post) {
-	p = &Post{0, sql.NullInt64{0, false}, sql.NullString{"", false}, "", time.Now(), time.Now().UTC(), pq.NullTime{time.Unix(0, 0), false}}
+	p = &Post{0, 0, sql.NullString{"", false}, "", time.Now(), time.Now().UTC(), pq.NullTime{time.Unix(0, 0), false}}
 	return
 }
 
@@ -96,10 +112,7 @@ func (p *Post) HtmlXML() string {
 }
 
 func (p *Post) Author() (*Author, error) {
-	if !p.AuthorId.Valid {
-		return nil, nil
-	}
-	return AuthorById(uint64(p.AuthorId.Int64))
+	return AuthorById(p.AuthorId)
 }
 
 func (p *Post) Slug() string {
@@ -117,18 +130,18 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		"Created":   p.Created,
 		"Posted":    p.Posted,
 	}
-	if p.AuthorId.Valid {
-		author, err := p.Author()
-		if err != nil {
-			logr.Errln("Error loading author", p.AuthorId, "to marshal post", p.Id, ":", err.Error())
-			// but continue
-		} else {
-			data["Author"] = map[string]interface{}{
-				"Name": author.Name,
-				"Url":  author.Url,
-			}
+
+	author, err := p.Author()
+	if err != nil {
+		logr.Errln("Error loading author", p.AuthorId, "to marshal post", p.Id, ":", err.Error())
+		// but continue
+	} else {
+		data["Author"] = map[string]interface{}{
+			"Name": author.Name,
+			"Url":  author.Url,
 		}
 	}
+
 	return json.Marshal(data)
 }
 
@@ -144,7 +157,7 @@ func (p *Post) MarkDeleted() error {
 func PostById(id uint64) (*Post, error) {
 	row := db.QueryRow("SELECT author, url, html, posted, created FROM post WHERE id = $1 AND deleted IS NULL", id)
 
-	var author sql.NullInt64
+	var author uint64
 	var url sql.NullString
 	var html string
 	var posted time.Time
@@ -186,7 +199,7 @@ func FirstPost() (*Post, error) {
 	row := db.QueryRow("SELECT id, author, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted ASC LIMIT 1")
 
 	var id uint64
-	var author sql.NullInt64
+	var author uint64
 	var url sql.NullString
 	var html string
 	var posted time.Time
@@ -206,7 +219,7 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 
 	posts := make([]*Post, 0, count)
 	var id uint64
-	var author sql.NullInt64
+	var author uint64
 	var url sql.NullString
 	var html string
 	var posted time.Time
@@ -241,7 +254,7 @@ func postsForRows(rows *sql.Rows, count int) ([]*Post, error) {
 }
 
 func RecentPosts(count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, author, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted DESC LIMIT $1", count)
+	rows, err := db.Query("SELECT p.id, p.author, p.url, p.html, p.posted, p.created FROM post p, writestream w WHERE p.id = w.post AND p.deleted IS NULL ORDER BY w.posted DESC LIMIT $1", count)
 	if err != nil {
 		logr.Errln("Error querying database for", count, "posts:", err.Error())
 		return nil, err
@@ -252,7 +265,7 @@ func RecentPosts(count int) ([]*Post, error) {
 }
 
 func PostsBefore(before time.Time, count int) ([]*Post, error) {
-	rows, err := db.Query("SELECT id, author, url, html, posted, created FROM post WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
+	rows, err := db.Query("SELECT p.id, p.author, p.url, p.html, p.posted, p.created FROM post p WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
 		before, count)
 	if err != nil {
 		return nil, err

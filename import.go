@@ -267,13 +267,16 @@ func ImportJson(path string) {
 			authorImp.PostId = author.Id
 			authorImp.Save()
 
-			post.AuthorId = sql.NullInt64{int64(author.Id), true}
+			post.AuthorId = author.Id
 
 			// Imported posts get their own new permalinks, but repeats should
 			// still refer to the original.
 			tweetId := tweetData["id_str"].(string)
 			origUrl := fmt.Sprintf("https://twitter.com/%s/status/%s", author.Name, tweetId)
 			post.Url = sql.NullString{origUrl, true}
+		} else {
+			// TODO: use author ID of site owner
+			post.AuthorId = 1
 		}
 
 		post.Html = mutateTweetText(tweetData)
