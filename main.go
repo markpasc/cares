@@ -26,17 +26,29 @@ func Prompt(prompt string) (ret string) {
 }
 
 func MakeAccount() {
+	var err error
+
 	name := Prompt("Name: ")
 	pass := Prompt("Password: ")
 	displayName := Prompt("Display name: ")
+
+	author := NewAuthor()
+	author.Name = displayName
+	author.Url = "/"
+	err = author.Save()
+	if err != nil {
+		logr.Errln("Error saving new account:", err.Error())
+		return
+	}
 
 	account := NewAccount()
 	account.Name = name
 	account.DisplayName = displayName
 	account.SetPassword(pass)
-	err := account.Save()
+	err = account.Save()
 	if err != nil {
 		logr.Errln("Error saving new account:", err.Error())
+		return
 	}
 }
 
