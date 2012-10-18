@@ -19,10 +19,10 @@ import (
 )
 
 type Import struct {
-	Id         uint64 `col:"id"`
-	PostId     uint64 `col:"post"`
-	Source     string `col:"source"`
-	Identifier string `col:"identifier"`
+	Id         int64  `db:"id"`
+	PostId     int64  `db:"post"`
+	Source     string `db:"source"`
+	Identifier string `db:"identifier"`
 }
 
 func NewImport() *Import {
@@ -30,21 +30,22 @@ func NewImport() *Import {
 }
 
 func ImportBySourceIdentifier(source, identifier string) (*Import, error) {
-	row := db.QueryRow("SELECT id, post, source, identifier FROM import WHERE source = $1 AND identifier = $2 LIMIT 1",
+	imports, err := db.Select(Import{},
+		"SELECT id, post, source, identifier FROM import WHERE source = $1 AND identifier = $2 LIMIT 1",
 		source, identifier)
-
-	var id, postid uint64
-	err := row.Scan(&id, &postid, &source, &identifier)
 	if err != nil {
 		return nil, err
 	}
-
-	i := &Import{id, postid, source, identifier}
+	i := imports[0].(*Import)
 	return i, nil
 }
 
 func (im *Import) Save() error {
-	return db.Save(im, "import")
+	if im.Id == 0 {
+		return db.Insert(im)
+	}
+	_, err := db.Update(im)
+	return err
 }
 
 type Mutation struct {

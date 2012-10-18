@@ -101,11 +101,11 @@ func (r *RssCloudRequest) Unpack(doc *xml.XmlDocument) error {
 }
 
 type RssCloud struct {
-	Id              uint64    `col:"id"`
-	URL             string    `col:"url"`
-	Method          string    `col:"method"`
-	SubscribedUntil time.Time `col:"subscribedUntil"`
-	Created         time.Time `col:"created"`
+	Id              uint64    `db:"id"`
+	URL             string    `db:"url"`
+	Method          string    `db:"method"`
+	SubscribedUntil time.Time `db:"subscribedUntil"`
+	Created         time.Time `db:"created"`
 }
 
 func NewRssCloud() *RssCloud {
@@ -145,61 +145,36 @@ func (r *RssCloud) Notify(feedurl string) {
 }
 
 func (r *RssCloud) Save() error {
-	return db.Save(r, "rsscloud")
+	if r.Id == 0 {
+		return db.Insert(r)
+	}
+	_, err := db.Update(r)
+	return err
 }
 
 func RssCloudByURL(url string) (*RssCloud, error) {
-	row := db.QueryRow("SELECT id, method, subscribedUntil, created FROM rsscloud WHERE url = $1", url)
-
-	var id uint64
-	var method string
-	var subscribedUntil time.Time
-	var created time.Time
-	err := row.Scan(&id, &method, &subscribedUntil, &created)
+	rows, err := db.Select(RssCloud{},
+		"SELECT id, method, subscribedUntil, created FROM rsscloud WHERE url = $1",
+		url)
 	if err != nil {
 		return nil, err
 	}
-
-	rssCloud := &RssCloud{id, url, method, subscribedUntil, created}
+	rssCloud := rows[0].(*RssCloud)
 	return rssCloud, nil
 }
 
 func ActiveRssClouds() ([]*RssCloud, error) {
-	rows, err := db.Query("SELECT id, url, method, subscribedUntil, created FROM rsscloud WHERE subscribedUntil > $1", time.Now().UTC())
+	rows, err := db.Select(RssCloud{},
+		"SELECT id, url, method, subscribedUntil, created FROM rsscloud WHERE subscribedUntil > $1",
+		time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
 
-	clouds := make([]*RssCloud, 0, 10)
-	var id uint64
-	var url string
-	var method string
-	var subscribedUntil time.Time
-	var created time.Time
-	var cloud *RssCloud
-	i := 0
-	for rows.Next() {
-		err = rows.Scan(&id, &url, &method, &subscribedUntil, &created)
-		if err != nil {
-			return nil, err
-		}
-		cloud = &RssCloud{id, url, method, subscribedUntil, created}
-
-		if cap(clouds) < i+1 {
-			newClouds := make([]*RssCloud, len(clouds), cap(clouds)*2)
-			copy(newClouds, clouds)
-			clouds = newClouds
-		}
-		clouds = clouds[0 : i+1]
-		clouds[i] = cloud
-		i++
+	clouds := make([]*RssCloud, len(rows))
+	for i, row := range rows {
+		clouds[i] = row.(*RssCloud)
 	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
 	return clouds, nil
 }
 

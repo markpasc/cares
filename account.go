@@ -1,15 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"github.com/jameskeane/bcrypt"
 )
 
 type Account struct {
-	Id           uint64
-	Name         string
-	DisplayName  string
-	passwordHash string
+	Id           int64  `db:"id"`
+	Name         string `db:"name"`
+	DisplayName  string `db:"displayName"`
+	PasswordHash string `db:"passwordHash"`
 }
 
 var owner *Account
@@ -19,38 +18,27 @@ func NewAccount() *Account {
 }
 
 func AccountByName(name string) (*Account, error) {
-	row := db.QueryRow("SELECT id, passwordHash, displayName FROM account WHERE name = $1 LIMIT 1",
+	accounts, err := db.Select(Account{},
+		"SELECT id, passwordHash, displayName FROM account WHERE name = $1 LIMIT 1",
 		name)
-
-	var id uint64
-	var passwordHash string
-	var displayName string
-	err := row.Scan(&id, &passwordHash, &displayName)
 	if err != nil {
 		return nil, err
 	}
-
-	account := &Account{id, name, displayName, passwordHash}
-	return account, nil
+	if len(accounts) > 0 {
+		return accounts[0].(*Account), nil
+	}
+	return nil, nil
 }
 
 func LoadAccountForOwner() error {
-	row := db.QueryRow("SELECT id, name, passwordHash, displayName FROM account ORDER BY id DESC LIMIT 1")
-
-	var id uint64
-	var name string
-	var passwordHash string
-	var displayName string
-	err := row.Scan(&id, &name, &passwordHash, &displayName)
-	if err == sql.ErrNoRows {
-		// That's okay. Leave the owner nil.
-		return nil
-	}
+	accounts, err := db.Select(Account{},
+		"SELECT id, name, passwordHash, displayName FROM account ORDER BY id DESC LIMIT 1")
 	if err != nil {
 		return err
 	}
-
-	owner = &Account{id, name, displayName, passwordHash}
+	if len(accounts) > 0 {
+		owner = accounts[0].(*Account)
+	}
 	return nil
 }
 
@@ -59,30 +47,21 @@ func AccountForOwner() *Account {
 }
 
 func (account *Account) HasPassword(pass string) bool {
-	return bcrypt.Match(pass, account.passwordHash)
+	return bcrypt.Match(pass, account.PasswordHash)
 }
 
 func (account *Account) SetPassword(pass string) error {
 	hash, err := bcrypt.Hash(pass)
 	if err == nil {
-		account.passwordHash = hash
+		account.PasswordHash = hash
 	}
 	return err
 }
 
-func (account *Account) Save() (err error) {
+func (account *Account) Save() error {
 	if account.Id == 0 {
-		row := db.QueryRow("INSERT INTO account (name, passwordHash, displayName) values ($1, $2, $3) RETURNING id",
-			account.Name, account.passwordHash, account.DisplayName)
-		var id uint64
-		err = row.Scan(&id)
-		if err != nil {
-			return
-		}
-		account.Id = id
-	} else {
-		_, err = db.Exec("UPDATE account SET name = $2, passwordHash = $3, displayName = $4 WHERE id = $1",
-			account.Id, account.Name, account.passwordHash, account.DisplayName)
+		return db.Insert(account)
 	}
-	return
+	_, err := db.Update(account)
+	return err
 }
