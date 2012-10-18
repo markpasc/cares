@@ -124,11 +124,12 @@ func (p *Post) Slug() string {
 
 func (p *Post) MarshalJSON() ([]byte, error) {
 	data := map[string]interface{}{
-		"Id":        p.Id,
-		"Html":      p.Html,
-		"Permalink": p.Permalink(),
-		"Created":   p.Created,
-		"Posted":    p.Posted,
+		"Id":            p.Id,
+		"Html":          p.Html,
+		"Permalink":     p.Permalink(),
+		"Created":       p.Created,
+		"Posted":        p.Posted,
+		"AuthorIsOwner": p.AuthorIsOwner(),
 	}
 
 	author, err := p.Author()
@@ -137,12 +138,18 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		// but continue
 	} else {
 		data["Author"] = map[string]interface{}{
+			"Id":   author.Id,
 			"Name": author.Name,
 			"Url":  author.Url,
 		}
 	}
 
 	return json.Marshal(data)
+}
+
+func (p *Post) AuthorIsOwner() bool {
+	// TODO: look at the real owner of the site (somehow).
+	return p.AuthorId == 1
 }
 
 func (p *Post) Save() error {

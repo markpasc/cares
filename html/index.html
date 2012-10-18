@@ -36,9 +36,11 @@
     <div id="post-{{Id}}" class="post row-fluid">
         <div class="span8 offset1">
             <p>
-                {{#Author}}
-                    <strong><a href="{{Url}}">{{Name}}</a></strong>
-                {{/Author}}
+                {{^AuthorIsOwner}}
+                    {{#Author}}
+                        <strong><a href="{{Url}}">{{Name}}</a></strong>
+                    {{/Author}}
+                {{/AuthorIsOwner}}
                 <span class="body">
                     {{{Html}}}
                 </span>
@@ -56,6 +58,11 @@
         <div id="post-{{Id}}" class="post row-fluid">
             <div class="span8 offset1">
                 <p>
+                    {{^AuthorIsOwner}}
+                        {{#Author}}
+                            <strong><a href="{{Url}}">{{Name}}</a></strong>
+                        {{/Author}}
+                    {{/AuthorIsOwner}}
                     <span class="body">
                         {{{Html}}}
                     </span>
