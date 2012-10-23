@@ -75,7 +75,7 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		"Created":   p.Created,
 		"Posted":    p.Posted,
 	}
-	return json.Marshal(data)
+	return json.MarshalIndent(data, "", "    ")
 }
 
 func (p *Post) Save() error {

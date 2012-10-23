@@ -43,7 +43,7 @@ func MakeAccount() {
 func main() {
 	var dsn string
 	var makeaccount, initdb, upgradedb bool
-	var importthinkup, importjson string
+	var importthinkup, importjson, backup, importbackup string
 	var port int
 	flag.StringVar(&dsn, "database", "dbname=cares sslmode=disable", "database connection info")
 	flag.BoolVar(&makeaccount, "make-account", false, "create a new account interactively")
@@ -51,6 +51,8 @@ func main() {
 	flag.BoolVar(&upgradedb, "upgrade-db", false, "upgrade the database schema")
 	flag.StringVar(&importthinkup, "import-thinkup", "", "path to a Thinkup CSV export to import")
 	flag.StringVar(&importjson, "import-json", "", "path to a directory of Twitter JSON to import")
+	flag.StringVar(&backup, "backup", "", "path to which to save a backup of the current tweets")
+	flag.StringVar(&importbackup, "import-backup", "", "path to a cares backup to import")
 	flag.IntVar(&port, "port", 8080, "port on which to serve the web interface")
 	flag.Parse()
 
@@ -77,6 +79,10 @@ func main() {
 		ImportJson(importjson)
 	} else if importthinkup != "" {
 		ImportThinkup(importthinkup)
+	} else if importbackup != "" {
+		ImportBackup(importbackup)
+	} else if backup != "" {
+		ExportBackup(backup)
 	} else {
 		ServeWeb(port)
 	}

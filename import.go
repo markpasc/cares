@@ -361,3 +361,59 @@ func ImportThinkup(path string) {
 
 	logr.Debugln("Finished importing", count, "posts!")
 }
+
+func ExportBackup(path string) {
+	err := os.MkdirAll(path, os.ModeDir|0755)
+	if err != nil {
+		logr.Errln("Error creating path", path, "to save backup:", err.Error())
+		return
+	}
+
+	lastPosts, err := RecentPosts(1)
+	if err != nil {
+		logr.Errln("Error finding last post:", err.Error())
+		return
+	}
+	lastTime := lastPosts[0].Posted.Add(1 * time.Second)
+
+	for {
+		posts, err := PostsBefore(lastTime, 30)
+		if err == sql.ErrNoRows {
+			logr.Debugln("Found no posts before", lastTime)
+			break
+		}
+		if err != nil {
+			logr.Errln("Error loading posts older than", lastTime, ":", err.Error())
+			return
+		}
+		if len(posts) == 0 {
+			logr.Debugln("Found zero posts before", lastTime)
+			break
+		}
+		logr.Debugln("Found", len(posts), "posts before", lastTime)
+
+		for _, post := range posts {
+			lastTime = post.Posted
+
+			postpath := filepath.Join(path, post.Slug()+".json")
+			postfile, err := os.Create(postpath)
+			if err != nil {
+				logr.Errln("Error creating file", postpath, "to save a post:", err.Error())
+				return
+			}
+
+			jsonbytes, err := post.MarshalJSON()
+			if err != nil {
+				logr.Errln("Error marshaling post", post, "as JSON:", err.Error())
+				return
+			}
+
+			postfile.Write(jsonbytes)
+			postfile.Write([]byte("\n"))
+			postfile.Close()
+		}
+
+	}
+}
+
+func ImportBackup(path string) {}
