@@ -145,7 +145,7 @@ func (p *Post) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	return json.Marshal(data)
+	return json.MarshalIndent(data, "", "    ")
 }
 
 func (p *Post) AuthorIsOwner() bool {
