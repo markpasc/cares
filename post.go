@@ -14,10 +14,10 @@ import (
 )
 
 type Writestream struct {
-	Id      int64     `db:"id"`
-	Account int64     `db:"account"`
-	Post    int64     `db:"post"`
-	Posted  time.Time `db:"posted"`
+	Id        int64
+	AccountId int64
+	PostId    int64
+	Posted    time.Time
 }
 
 func NewWritestream() (w *Writestream) {
@@ -34,9 +34,9 @@ func (w *Writestream) Save() error {
 }
 
 type Author struct {
-	Id   int64  `db:"id"`
-	Name string `db:"name"`
-	Url  string `db:"url"`
+	Id   int64
+	Name string
+	Url  string
 }
 
 func NewAuthor() (a *Author) {
@@ -61,13 +61,13 @@ func AuthorById(id int64) (*Author, error) {
 }
 
 type Post struct {
-	Id       int64          `db:"id"`
-	AuthorId int64          `db:"author"`
-	Url      sql.NullString `db:"url"`
-	Html     string         `db:"html"`
-	Posted   time.Time      `db:"posted"`
-	Created  time.Time      `db:"created"`
-	Deleted  pq.NullTime    `db:"deleted"`
+	Id       int64
+	AuthorId int64
+	Url      sql.NullString
+	Html     string
+	Posted   time.Time
+	Created  time.Time
+	Deleted  pq.NullTime
 }
 
 func NewPost() (p *Post) {
@@ -198,7 +198,7 @@ func PostBySlug(slug string) (*Post, error) {
 func FirstPost() (*Post, error) {
 	logr.Debugln("Finding first post")
 	posts, err := db.Select(Post{},
-		"SELECT id, author, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted ASC LIMIT 1")
+		"SELECT id, authorId, url, html, posted, created FROM post WHERE deleted IS NULL ORDER BY posted ASC LIMIT 1")
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func postsForRows(rows []interface{}) []*Post {
 
 func RecentPosts(count int) ([]*Post, error) {
 	rows, err := db.Select(Post{},
-		"SELECT p.id, p.author, p.url, p.html, p.posted, p.created FROM post p, writestream w WHERE p.id = w.post AND p.deleted IS NULL ORDER BY w.posted DESC LIMIT $1",
+		"SELECT p.id, p.authorId, p.url, p.html, p.posted, p.created FROM post p, writestream w WHERE p.id = w.postId AND p.deleted IS NULL ORDER BY p.posted DESC LIMIT $1",
 		count)
 	if err != nil {
 		logr.Errln("Error querying database for", count, "posts:", err.Error())
@@ -227,7 +227,7 @@ func RecentPosts(count int) ([]*Post, error) {
 
 func PostsBefore(before time.Time, count int) ([]*Post, error) {
 	rows, err := db.Select(Post{},
-		"SELECT p.id, p.author, p.url, p.html, p.posted, p.created FROM post p WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
+		"SELECT p.id, p.authorId, p.url, p.html, p.posted, p.created FROM post p WHERE posted < $1 AND deleted IS NULL ORDER BY posted DESC LIMIT $2",
 		before, count)
 	if err != nil {
 		return nil, err
@@ -242,7 +242,7 @@ func PostsOnDay(day time.Time) ([]*Post, error) {
 	maxTime := time.Date(year, month, mday, 0, 0, 0, 0, time.UTC)
 
 	rows, err := db.Select(Post{},
-		"SELECT id, author, url, html, posted, created FROM post WHERE $1 <= posted AND posted < $2 AND deleted IS NULL ORDER BY posted DESC",
+		"SELECT id, authorId, url, html, posted, created FROM post WHERE $1 <= posted AND posted < $2 AND deleted IS NULL ORDER BY posted DESC",
 		minTime, maxTime)
 	if err != nil {
 		return nil, err

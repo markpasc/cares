@@ -101,11 +101,11 @@ func (r *RssCloudRequest) Unpack(doc *xml.XmlDocument) error {
 }
 
 type RssCloud struct {
-	Id              uint64    `db:"id"`
-	URL             string    `db:"url"`
-	Method          string    `db:"method"`
-	SubscribedUntil time.Time `db:"subscribedUntil"`
-	Created         time.Time `db:"created"`
+	Id              uint64
+	URL             string
+	Method          string
+	SubscribedUntil time.Time
+	Created         time.Time
 }
 
 func NewRssCloud() *RssCloud {

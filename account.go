@@ -5,10 +5,10 @@ import (
 )
 
 type Account struct {
-	Id           int64  `db:"id"`
-	Name         string `db:"name"`
-	DisplayName  string `db:"displayName"`
-	PasswordHash string `db:"passwordHash"`
+	Id           int64
+	Name         string
+	DisplayName  string
+	PasswordHash string
 }
 
 var owner *Account

@@ -21,8 +21,8 @@ type Database struct {
 var db *Database
 
 type Version struct {
-	Version  int       `db:"version"`
-	Upgraded time.Time `db:"upgraded"`
+	Version  int
+	Upgraded time.Time
 }
 
 func DatabaseVersion() (int, error) {

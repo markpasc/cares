@@ -19,10 +19,10 @@ import (
 )
 
 type Import struct {
-	Id         int64  `db:"id"`
-	PostId     int64  `db:"post"`
-	Source     string `db:"source"`
-	Identifier string `db:"identifier"`
+	Id         int64
+	Value      int64
+	Source     string
+	Identifier string
 }
 
 func NewImport() *Import {
@@ -217,10 +217,10 @@ func ImportJson(path string) {
 		}
 
 		var post *Post
-		if im.PostId != 0 {
-			post, err = PostById(im.PostId)
+		if im.Value != 0 {
+			post, err = PostById(im.Value)
 			if err != nil {
-				logr.Errln("Error loading already-imported post", im.PostId, "for twitter post", im.Identifier, ":", err.Error())
+				logr.Errln("Error loading already-imported post", im.Value, "for twitter post", im.Identifier, ":", err.Error())
 				return
 			}
 		} else {
@@ -251,10 +251,10 @@ func ImportJson(path string) {
 			}
 
 			var author *Author
-			if authorImp.PostId != 0 {
-				author, err = AuthorById(authorImp.PostId)
+			if authorImp.Value != 0 {
+				author, err = AuthorById(authorImp.Value)
 				if err != nil {
-					logr.Errln("Error loading already-import author", im.PostId, "for twitter author", im.Identifier, ":", err.Error())
+					logr.Errln("Error loading already-import author", im.Value, "for twitter author", im.Identifier, ":", err.Error())
 					return
 				}
 			} else {
@@ -265,7 +265,7 @@ func ImportJson(path string) {
 			author.Url = fmt.Sprintf("https://twitter.com/%s", author.Name)
 			author.Save()
 
-			authorImp.PostId = author.Id
+			authorImp.Value = author.Id
 			authorImp.Save()
 
 			post.AuthorId = author.Id
@@ -291,10 +291,10 @@ func ImportJson(path string) {
 			return
 		}
 
-		im.PostId = post.Id
+		im.Value = post.Id
 		err = im.Save()
 		if err != nil {
-			logr.Errln("Error saving import notation for post", im.PostId, ":", err.Error())
+			logr.Errln("Error saving import notation for post", post.Id, ":", err.Error())
 			return
 		}
 
@@ -357,10 +357,10 @@ func ImportThinkup(path string) {
 		}
 
 		var post *Post
-		if im.PostId != 0 {
-			post, err = PostById(im.PostId)
+		if im.Value != 0 {
+			post, err = PostById(im.Value)
 			if err != nil {
-				logr.Errln("Error loading already-imported post", im.PostId, "for twitter post", im.Identifier, ":", err.Error())
+				logr.Errln("Error loading already-imported post", im.Value, "for twitter post", im.Identifier, ":", err.Error())
 				return
 			}
 		} else {
@@ -387,10 +387,10 @@ func ImportThinkup(path string) {
 			return
 		}
 
-		im.PostId = post.Id
+		im.Value = post.Id
 		err = im.Save()
 		if err != nil {
-			logr.Errln("Error saving import notation for post", im.PostId, ":", err.Error())
+			logr.Errln("Error saving import notation for post", post.Id, ":", err.Error())
 			return
 		}
 
@@ -516,8 +516,8 @@ func ImportBackup(path string) {
 		}
 
 		w := NewWritestream()
-		w.Account = 1
-		w.Post = post.Id
+		w.AccountId = 1
+		w.PostId = post.Id
 		w.Posted = post.Posted
 		w.Save()
 
