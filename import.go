@@ -459,4 +459,70 @@ func ExportBackup(path string) {
 	}
 }
 
-func ImportBackup(path string) {}
+func ImportBackup(path string) {
+	logr.Debugln("Importing from cares export", path)
+	jsons, err := ioutil.ReadDir(path)
+	if err != nil {
+		logr.Errln("Error finding cares export", path, "to import:", err.Error())
+		return
+	}
+
+	count := 0
+	for _, fileinfo := range jsons {
+		if fileinfo.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(fileinfo.Name(), "json") {
+			continue
+		}
+
+		datafilepath := filepath.Join(path, fileinfo.Name())
+		datafile, err := os.Open(datafilepath)
+		if err != nil {
+			logr.Errln("Error opening cares export file", datafilepath, ":", err.Error())
+			return
+		}
+
+		var data map[string]interface{}
+		dec := json.NewDecoder(datafile)
+		err = dec.Decode(&data)
+		if err != nil {
+			logr.Errln("Error unmarshaling cares export file", datafilepath, ":", err.Error())
+			return
+		}
+		datafile.Close()
+
+		post := NewPost()
+		postId := data["Id"].(float64)
+		post.Id = int64(postId)
+		post.AuthorId = 1
+		post.Html = data["Html"].(string)
+		post.Posted, err = time.Parse(time.RFC3339, data["Posted"].(string))
+		if err != nil {
+			logr.Errln("Error parsing timestamp", data["Posted"].(string), ":", err.Error())
+			return
+		}
+		post.Created, err = time.Parse(time.RFC3339, data["Created"].(string))
+		if err != nil {
+			logr.Errln("Error parsing timestamp", data["Created"].(string), ":", err.Error())
+			return
+		}
+
+		// Always insert, since we have an Id but it's not an update.
+		err = db.Insert(post)
+		if err != nil {
+			logr.Errln("Error saving cares post imported from", datafilepath, ":", err.Error())
+			return
+		}
+
+		w := NewWritestream()
+		w.Account = 1
+		w.Post = post.Id
+		w.Posted = post.Posted
+		w.Save()
+
+		count++
+	}
+
+	logr.Debugln("Imported", count, "posts")
+}
