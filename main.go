@@ -75,7 +75,7 @@ func main() {
 	}
 	defer logr.Close()
 
-	err = OpenDatabase(dsn, upgradedb)
+	err = OpenDatabase(dsn, initdb || upgradedb)
 	if err != nil {
 		logr.Errln("Error connecting to database:", err.Error())
 		return

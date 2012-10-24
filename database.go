@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SCHEMA_VERSION = 5
+	SCHEMA_VERSION = 1
 )
 
 type Database struct {

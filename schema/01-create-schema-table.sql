@@ -1,4 +1,0 @@
-CREATE TABLE schema (
-	version INTEGER UNIQUE NOT NULL,
-	upgraded TIMESTAMP NOT NULL DEFAULT NOW()
-);

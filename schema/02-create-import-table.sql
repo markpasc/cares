@@ -1,7 +1,0 @@
-CREATE TABLE import (
-	id SERIAL,
-	post INTEGER NOT NULL,
-	source CHARACTER VARYING NOT NULL,
-	identifier CHARACTER VARYING NOT NULL,
-	UNIQUE(source, identifier)
-);
