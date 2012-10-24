@@ -75,10 +75,14 @@
     {{/posts}}
 </div>
 
-<div id="nav">
-    <div class="load-more"><button>More posts</button></div>
-    <div class="loading hide">Loading...</div>
+{{#LastPost}}
+<div id="nav" class="row-fluid">
+    <div class="span8 offset1">
+        <div class="load-more"><button>More posts</button></div>
+        <div class="loading hide">Loading...</div>
+    </div>
 </div>
+{{/LastPost}}
 
 <script src="/static/editor.js"></script>
 <script src="/static/loadmore.js"></script>
