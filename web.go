@@ -274,12 +274,6 @@ func stream(w http.ResponseWriter, r *http.Request) {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	if len(r.URL.Path) > 1 {
-		// Actually some other unhandled URL, so 404.
-		http.NotFound(w, r)
-		return
-	}
-
 	posts, err := RecentPosts(20)
 	if err != nil {
 		logr.Errln("Error loading recent posts for home page:", err.Error())
@@ -422,6 +416,15 @@ func static(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path)
 }
 
+func indexOr404(w http.ResponseWriter, r *http.Request) {
+	if len(r.URL.Path) > 1 {
+		// Actually some other unhandled URL, so 404.
+		http.NotFound(w, r)
+		return
+	}
+	index(w, r)
+}
+
 func ServeWeb(port int) {
 	err := LoadAccountForOwner()
 	if err != nil {
@@ -438,7 +441,7 @@ func ServeWeb(port int) {
 	http.HandleFunc("/stream", stream)
 	http.HandleFunc("/archive/", archive)
 	http.HandleFunc("/post/", permalink)
-	http.HandleFunc("/", index)
+	http.HandleFunc("/", indexOr404)
 
 	logr.Debugln("Ohai web servin'")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
