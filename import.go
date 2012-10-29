@@ -516,7 +516,6 @@ func ImportBackup(path string) {
 		}
 
 		w := NewWritestream()
-		w.AccountId = 1
 		w.PostId = post.Id
 		w.Posted = post.Posted
 		w.Save()

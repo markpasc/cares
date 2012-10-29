@@ -387,8 +387,6 @@ func post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ws := NewWritestream()
-	// TODO: use owner's ID
-	ws.AccountId = 1
 	ws.PostId = post.Id
 	ws.Posted = post.Posted
 	err = ws.Save()

@@ -14,14 +14,13 @@ import (
 )
 
 type Writestream struct {
-	Id        int64
-	AccountId int64
-	PostId    int64
-	Posted    time.Time
+	Id     int64
+	PostId int64
+	Posted time.Time
 }
 
 func NewWritestream() (w *Writestream) {
-	w = &Writestream{0, 0, 0, time.Now()}
+	w = &Writestream{0, 0, time.Now()}
 	return
 }
 
