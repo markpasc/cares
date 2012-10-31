@@ -61,6 +61,7 @@ func OpenDatabase(dsn string, upgrading bool) (err error) {
 	dbmap.AddTableWithName(Writestream{}, "writestream").SetKeys(true, "Id")
 	dbmap.AddTableWithName(RssCloud{}, "rsscloud").SetKeys(true, "Id")
 	dbmap.AddTableWithName(Import{}, "import").SetKeys(true, "Id")
+	dbmap.AddTableWithName(Subscription{}, "subscription").SetKeys(true, "Id")
 	dbmap.AddTableWithName(Version{}, "schema")
 
 	db = &Database{dbmap}

@@ -155,16 +155,7 @@ func archive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func atom(w http.ResponseWriter, r *http.Request) {
-	posts, err := RecentPosts(20)
-	if err != nil {
-		logr.Errln("Error loading posts for Atom feed:", err.Error())
-		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
-		return
-	}
-
-	owner := AccountForOwner()
-
+func AtomForPosts(r *http.Request, posts []*Post, titleFormat string) string {
 	// TODO: somehow determine if we're on HTTPS or no?
 	baseurlUrl := url.URL{"http", "", nil, r.Host, "/", "", ""}
 	baseurl := strings.TrimRight(baseurlUrl.String(), "/")
@@ -174,7 +165,7 @@ func atom(w http.ResponseWriter, r *http.Request) {
 		lastPost = posts[0]
 	}
 
-	titleFormat := "%s"
+	owner := AccountForOwner()
 	data := map[string]interface{}{
 		"Posts":     posts,
 		"OwnerName": owner.DisplayName,
@@ -184,6 +175,18 @@ func atom(w http.ResponseWriter, r *http.Request) {
 	}
 	logr.Debugln("Rendering Atom with baseurl of", baseurl)
 	xml := mustache.RenderFile("html/atom.xml", data)
+	return xml
+}
+
+func atom(w http.ResponseWriter, r *http.Request) {
+	posts, err := RecentPosts(20)
+	if err != nil {
+		logr.Errln("Error loading posts for Atom feed:", err.Error())
+		http.Error(w, "error finding recent posts", http.StatusInternalServerError)
+		return
+	}
+
+	xml := AtomForPosts(r, posts, "%s")
 	w.Header().Set("Content-Type", "application/atom+xml")
 	w.Write([]byte(xml))
 	return
@@ -398,6 +401,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: use proper scheme
 	go NotifyRssCloud(fmt.Sprintf("http://%s/rss", r.Host))
+	go NotifySubscribers(AtomForPosts(r, []*Post{post}, "%s"))
 
 	ret, err := json.Marshal(post)
 	if err != nil {
@@ -434,6 +438,7 @@ func ServeWeb(port int) {
 	http.HandleFunc("/rss", rss)
 	http.HandleFunc("/rssCloud", rssCloud)
 	http.HandleFunc("/atom", atom)
+	http.HandleFunc("/hub", hub)
 	http.HandleFunc("/post", post)
 	http.HandleFunc("/activity", activity)
 	http.HandleFunc("/stream", stream)
